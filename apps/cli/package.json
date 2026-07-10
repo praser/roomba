@@ -1,0 +1,27 @@
+{
+  "name": "@roomba/cli",
+  "version": "0.0.0",
+  "private": true,
+  "description": "roomba command-line interface",
+  "type": "module",
+  "bin": {
+    "roomba": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "dev": "tsc -b tsconfig.json --watch",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo"
+  },
+  "dependencies": {
+    "@roomba/core": "workspace:*",
+    "@roomba/vimm": "workspace:*",
+    "commander": "^13.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "typescript": "^5.7.2"
+  }
+}
