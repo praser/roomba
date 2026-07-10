@@ -20,16 +20,11 @@ program
   });
 
 program
-  .command("console")
+  .command("search")
   .argument("<alias>", "console alias, e.g. PS1 (see `roomba consoles`)")
-  .argument("<action>", "action to perform: search")
   .argument("<query...>", "game name to search for")
-  .description("Operate on a specific console: roomba console <alias> search <name>")
-  .action(async (alias: string, action: string, queryParts: string[]) => {
-    if (action !== "search") {
-      program.error(`Unknown action "${action}" for console. Supported: search`);
-    }
-
+  .description("Search a console's games across all sources, one row per file")
+  .action(async (alias: string, queryParts: string[]) => {
     const query = queryParts.join(" ");
     const rows = await searchGames(alias, query);
 
