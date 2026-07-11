@@ -22,6 +22,8 @@ export interface GameFile {
   languages: string;
   /** Community rating, e.g. "9.6". */
   rating: string;
+  /** Compressed file size, e.g. "330 MB". */
+  size: string;
   /** Direct download URL for this specific file. */
   downloadUrl: string;
 }

@@ -14,6 +14,7 @@ export interface SearchListing {
 export interface Variation {
   name: string;
   version: string;
+  size: string;
   downloadUrl: string;
 }
 
@@ -117,7 +118,12 @@ export function parseVariations(html: string): Variation[] {
 
       const name =
         multipleFormats && format.label ? `${title} [${format.label}]` : title;
-      variations.push({ name, version: entry.Version, downloadUrl: url.href });
+      variations.push({
+        name,
+        version: entry.Version,
+        size: sizes[format.alt] ?? "-",
+        downloadUrl: url.href,
+      });
     }
   }
 

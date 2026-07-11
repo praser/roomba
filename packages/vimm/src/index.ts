@@ -97,6 +97,7 @@ export class VimmRoomSource implements RoomSource {
           version: variation.version,
           languages: listing.languages,
           rating: listing.rating,
+          size: variation.size,
           downloadUrl: variation.downloadUrl,
         }));
       },
