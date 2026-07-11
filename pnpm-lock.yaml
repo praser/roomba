@@ -22,7 +22,7 @@ importers:
         version: link:../../packages/core
       '@roomba/vimm':
         specifier: workspace:*
-        version: link:../../packages/vimm
+        version: link:../../engines/vimm
       commander:
         specifier: ^13.1.0
         version: 13.1.0
@@ -34,17 +34,11 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
-  packages/core:
-    devDependencies:
-      typescript:
-        specifier: ^5.7.2
-        version: 5.9.3
-
-  packages/vimm:
+  engines/vimm:
     dependencies:
       '@roomba/core':
         specifier: workspace:*
-        version: link:../core
+        version: link:../../packages/core
       node-html-parser:
         specifier: ^7.0.1
         version: 7.1.0
@@ -52,6 +46,12 @@ importers:
       '@types/node':
         specifier: ^22.10.0
         version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/core:
+    devDependencies:
       typescript:
         specifier: ^5.7.2
         version: 5.9.3

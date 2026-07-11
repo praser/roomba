@@ -52,35 +52,43 @@ filters, cache behavior, and examples).
 
 ## Repository layout
 
-This is a [pnpm workspace](https://pnpm.io/workspaces) monorepo.
+This is a [pnpm workspace](https://pnpm.io/workspaces) monorepo, organized into
+three tiers:
 
-| Package | Path | Description |
+| Tier | Path | Members |
 |---|---|---|
-| [`@roomba/core`](packages/core/README.md) | `packages/core` | Shared domain types and the `RoomSource` contract |
-| [`@roomba/vimm`](packages/vimm/README.md) | `packages/vimm` | Vimm's Lair source, implements `RoomSource` |
-| [`@roomba/cli`](apps/cli/README.md) | `apps/cli` | The `roomba` command-line app |
+| **Packages** — shared libraries | `packages/*` | [`@roomba/core`](packages/core/README.md) |
+| **Engines** — data sources | `engines/*` | [`@roomba/vimm`](engines/vimm/README.md) |
+| **Apps** — end-user programs | `apps/*` | [`@roomba/cli`](apps/cli/README.md) |
+
+**Engines are meant to be distributed in isolation, not bundled into roomba as
+batteries included.** Each engine is a self-contained implementation of the
+`RoomSource` contract that depends only on `@roomba/core`, so it can be built,
+tested, versioned, and published on its own. roomba wires in whichever engines
+it wants.
 
 ## Architecture
 
-roomba keeps a clean separation so new providers are cheap to add:
+roomba keeps a clean separation so new engines are cheap to add:
 
 - **`@roomba/core`** owns the vocabulary — `Console`, `GameFile`, and the
-  `RoomSource` interface that every provider implements. No I/O, no scraping.
-- **A source** (e.g. `@roomba/vimm`) implements `RoomSource`: list consoles,
+  `RoomSource` interface that every engine implements. No I/O, no scraping.
+- **An engine** (e.g. `@roomba/vimm`) implements `RoomSource`: list consoles,
   search, resolve a console alias, and describe how to download its URLs. HTTP
-  access is done through an injected `Fetcher`, so caching is transparent.
-- **`@roomba/cli`** wires sources together and does the cross-cutting work *on
+  access is done through an injected `Fetcher`, so caching is transparent, and
+  the engine depends on nothing but `@roomba/core`.
+- **`@roomba/cli`** wires engines together and does the cross-cutting work *on
   our side*: alias normalization (case-insensitive), region/language filtering,
   caching, and rendering.
 
-A guiding principle: **sources return the full list; roomba filters and
-normalizes at display time.** That keeps each provider small — a new source
-only needs to fetch and parse, not implement filtering or caching.
+A guiding principle: **engines return the full list; roomba filters and
+normalizes at display time.** That keeps each engine small — a new one only
+needs to fetch and parse, not implement filtering or caching.
 
-### Adding a source
+### Adding an engine
 
-1. Create a package that exports a class implementing `RoomSource` from
-   `@roomba/core` (see `@roomba/vimm` for a reference).
+1. Create a package under `engines/` that exports a class implementing
+   `RoomSource` from `@roomba/core` (see `@roomba/vimm` for a reference).
 2. Register it in `apps/cli/src/sources.ts` (`createSources`).
 
 That's it — search filtering, alias case-insensitivity, caching, and the

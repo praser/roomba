@@ -7,6 +7,6 @@
   "include": ["src/**/*"],
   "references": [
     { "path": "../../packages/core" },
-    { "path": "../../packages/vimm" }
+    { "path": "../../engines/vimm" }
   ]
 }

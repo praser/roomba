@@ -1,6 +1,6 @@
 # @roomba/cli
 
-The `roomba` command-line app. It wires the available [sources](../../packages/vimm)
+The `roomba` command-line app. It wires the available [engines](../../engines/vimm)
 together and adds the cross-cutting behavior — case-insensitive alias matching,
 region/language filtering, an on-disk HTTP cache, and table rendering.
 

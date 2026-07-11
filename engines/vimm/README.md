@@ -1,7 +1,7 @@
 # @roomba/vimm
 
 A [roomba](../../README.md) data source backed by [Vimm's Lair](https://vimm.net).
-Implements the [`RoomSource`](../core/README.md) contract by scraping the public
+Implements the [`RoomSource`](../../packages/core/README.md) contract by scraping the public
 site.
 
 > Part of the [roomba](../../README.md) monorepo.
