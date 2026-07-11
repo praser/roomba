@@ -26,6 +26,12 @@ export interface GameFile {
   downloadUrl: string;
 }
 
+/** The HTTP request a source needs to fetch one of its download URLs. */
+export interface DownloadRequest {
+  url: URL;
+  headers: Record<string, string>;
+}
+
 export interface RoomSource {
   id: string;
   baseURL: URL;
@@ -35,4 +41,9 @@ export interface RoomSource {
   resolve: (alias: string) => URL;
   /** Search a console (by alias) for games matching a query, one entry per file. */
   search: (alias: string, query: string) => Promise<GameFile[]>;
+  /**
+   * If this source recognizes the download URL, return the request (URL plus
+   * any required headers) needed to fetch it; otherwise null.
+   */
+  downloadRequest: (url: URL) => DownloadRequest | null;
 }

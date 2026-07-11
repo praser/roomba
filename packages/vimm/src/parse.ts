@@ -1,8 +1,5 @@
 import { parse } from "node-html-parser";
 
-/** Base URL of Vimm's public mirror, which serves direct per-file downloads. */
-const MIRROR_BASE_URL = "https://archival.cat";
-
 /** A search-results row — release-level metadata shared by all its files. */
 export interface SearchListing {
   /** Vault id of the release detail page. */
@@ -29,7 +26,6 @@ interface RawMedia {
   ZippedText: string;
   AltZippedText: string;
   AltZipped2Text: string;
-  Mirror?: string[];
 }
 
 /** Parse the `?p=list` search results page into release listings. */
@@ -105,40 +101,23 @@ export function parseVariations(html: string): Variation[] {
   for (const entry of media) {
     const title = Buffer.from(entry.GoodTitle, "base64").toString("utf8");
     const sizes = [entry.ZippedText, entry.AltZippedText, entry.AltZipped2Text];
-    const mirrors = entry.Mirror ?? [];
 
-    // Formats this entry actually ships (non-zero size).
+    // Formats this entry actually ships (non-zero size). Each is a distinct
+    // downloadable file, addressed by Vimm's download endpoint via mediaId+alt.
     const available = formats.filter((format) => {
       const size = sizes[format.alt];
       return size && size !== "0" && size !== "0 KB";
     });
+    const multipleFormats = available.length > 1;
 
-    // Each distinct file is one downloadable variation. The mirror hosts one
-    // archive per Mirror[] entry, so a format only counts as its own file when
-    // the mirror carries a separate archive for it (e.g. GameCube ciso/nkit/rvz).
-    // When there's a single mirror archive, every format is served by it, so we
-    // emit one row. When there's no mirror at all, fall back to Vimm's endpoint.
-    const files =
-      mirrors.length === 0
-        ? available.map((format) => ({
-            format,
-            url: `https://${host}/?mediaId=${entry.ID}&alt=${format.alt}`,
-          }))
-        : available
-            .map((format) => ({ format, mirror: mirrors[format.alt] }))
-            .filter(
-              (file, index) => file.mirror !== undefined && (index === 0 || mirrors.length > 1),
-            )
-            .map((file) => ({
-              format: file.format,
-              url: `${MIRROR_BASE_URL}/${file.mirror}/${entry.ID}.7z`,
-            }));
+    for (const format of available) {
+      const url = new URL(`https://${host}/`);
+      url.searchParams.set("mediaId", String(entry.ID));
+      if (format.alt !== 0) url.searchParams.set("alt", String(format.alt));
 
-    const multipleFiles = files.length > 1;
-    for (const file of files) {
       const name =
-        multipleFiles && file.format.label ? `${title} [${file.format.label}]` : title;
-      variations.push({ name, version: entry.Version, downloadUrl: file.url });
+        multipleFormats && format.label ? `${title} [${format.label}]` : title;
+      variations.push({ name, version: entry.Version, downloadUrl: url.href });
     }
   }
 

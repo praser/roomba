@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { Command } from "commander";
+import { downloadFile } from "./download.js";
 import { searchGames } from "./games.js";
 import { collectConsoles } from "./sources.js";
 import { renderTable } from "./table.js";
@@ -45,6 +46,18 @@ program
       ]),
     );
     console.log(table);
+  });
+
+program
+  .command("download")
+  .argument("<url>", "download URL from `roomba search`")
+  .option(
+    "-o, --output <path>",
+    "output file or directory (default: your Downloads folder)",
+  )
+  .description("Download a game file")
+  .action(async (url: string, options: { output?: string }) => {
+    await downloadFile(url, options.output);
   });
 
 try {

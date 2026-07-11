@@ -1,11 +1,16 @@
 import { URL } from "node:url";
 import { parse } from "node-html-parser";
-import type { Console, GameFile, RoomSource } from "@roomba/core";
+import type { Console, DownloadRequest, GameFile, RoomSource } from "@roomba/core";
 import { parseSearchListings, parseVariations } from "./parse.js";
 
 export const VIMM_BASE_URL = "https://vimm.net";
 
 const USER_AGENT = "roomba (+https://vimm.net)";
+
+// Vimm's download hosts reject non-browser User-Agents and require a matching
+// Referer, so downloads need this browser-like UA rather than USER_AGENT.
+const DOWNLOAD_USER_AGENT =
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
 /** How many release detail pages to fetch at once when searching. */
 const SEARCH_CONCURRENCY = 8;
@@ -24,6 +29,19 @@ export class VimmRoomSource implements RoomSource {
   /** Build the vault URL for a console alias (e.g. "PS2" -> https://vimm.net/vault/PS2). */
   resolve(alias: string): URL {
     return new URL(`/vault/${alias}`, this.baseURL);
+  }
+
+  downloadRequest(url: URL): DownloadRequest | null {
+    if (url.hostname !== "vimm.net" && !url.hostname.endsWith(".vimm.net")) {
+      return null;
+    }
+    return {
+      url,
+      headers: {
+        "user-agent": DOWNLOAD_USER_AGENT,
+        referer: `${this.baseURL.origin}/`,
+      },
+    };
   }
 
   async loadConsoles(): Promise<Console[]> {
