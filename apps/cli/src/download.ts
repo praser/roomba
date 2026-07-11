@@ -26,7 +26,10 @@ export async function downloadFile(
     );
   }
 
-  const filename = filenameFromResponse(response, url);
+  const filename = filenameFromContentDisposition(
+    response.headers.get("content-disposition"),
+    url,
+  );
   const destination = await resolveDestination(output, filename);
 
   const total = Number(response.headers.get("content-length")) || 0;
@@ -77,9 +80,8 @@ async function isDirectory(path: string): Promise<boolean> {
   }
 }
 
-/** Derive the filename from Content-Disposition, falling back to the URL. */
-function filenameFromResponse(response: Response, url: URL): string {
-  const header = response.headers.get("content-disposition");
+/** Derive the filename from a Content-Disposition header, falling back to the URL. */
+export function filenameFromContentDisposition(header: string | null, url: URL): string {
   if (header) {
     const encoded = header.match(/filename\*=(?:UTF-8'')?([^;]+)/i);
     if (encoded?.[1]) {
@@ -117,7 +119,7 @@ function progressReporter(total: number): Transform {
   });
 }
 
-function formatBytes(bytes: number): string {
+export function formatBytes(bytes: number): string {
   const units = ["B", "KB", "MB", "GB", "TB"];
   let value = bytes;
   let unit = 0;

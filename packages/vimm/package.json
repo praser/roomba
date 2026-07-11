@@ -3,6 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "description": "Vimm's Lair data source for roomba",
+  "license": "MIT",
+  "author": "Rubens Praser Junior",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

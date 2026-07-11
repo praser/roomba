@@ -7,7 +7,10 @@ import type { Fetcher, HttpResponse } from "@roomba/core";
 /** How long a cached response stays fresh: one day. */
 const TTL_MS = 24 * 60 * 60 * 1000;
 
-const CACHE_DIR = join(process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache"), "roomba");
+/** Default on-disk cache location (honors XDG_CACHE_HOME). */
+export function defaultCacheDir(): string {
+  return join(process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache"), "roomba");
+}
 
 interface CacheEntry {
   storedAt: number;
@@ -15,29 +18,32 @@ interface CacheEntry {
 }
 
 /** Wrap a Fetcher with a filesystem cache. Only successful responses are stored. */
-export function createCachingFetcher(base: Fetcher): Fetcher {
+export function createCachingFetcher(
+  base: Fetcher,
+  cacheDir: string = defaultCacheDir(),
+): Fetcher {
   return async (url, headers) => {
-    const file = cacheFile(url);
+    const file = cacheFile(cacheDir, url);
 
     const cached = await readEntry(file);
     if (cached) return cached.response;
 
     const response = await base(url, headers);
     if (response.ok) {
-      await writeEntry(file, { storedAt: Date.now(), response });
+      await writeEntry(cacheDir, file, { storedAt: Date.now(), response });
     }
     return response;
   };
 }
 
 /** Remove all cached responses. */
-export async function cleanCache(): Promise<void> {
-  await rm(CACHE_DIR, { recursive: true, force: true });
+export async function cleanCache(cacheDir: string = defaultCacheDir()): Promise<void> {
+  await rm(cacheDir, { recursive: true, force: true });
 }
 
-function cacheFile(url: URL): string {
+function cacheFile(cacheDir: string, url: URL): string {
   const hash = createHash("sha256").update(url.href).digest("hex");
-  return join(CACHE_DIR, `${hash}.json`);
+  return join(cacheDir, `${hash}.json`);
 }
 
 async function readEntry(file: string): Promise<CacheEntry | null> {
@@ -50,9 +56,13 @@ async function readEntry(file: string): Promise<CacheEntry | null> {
   }
 }
 
-async function writeEntry(file: string, entry: CacheEntry): Promise<void> {
+async function writeEntry(
+  cacheDir: string,
+  file: string,
+  entry: CacheEntry,
+): Promise<void> {
   try {
-    await mkdir(CACHE_DIR, { recursive: true });
+    await mkdir(cacheDir, { recursive: true });
     await writeFile(file, JSON.stringify(entry));
   } catch {
     // A cache write failure must never break the command.
