@@ -1,8 +1,12 @@
 import type { RoomSource } from "@roomba/core";
-import { VimmRoomSource } from "@roomba/vimm";
+import { directFetcher, VimmRoomSource } from "@roomba/vimm";
+import { createCachingFetcher } from "./cache.js";
 
-/** All data sources roomba aggregates over. */
-export const SOURCES: RoomSource[] = [new VimmRoomSource()];
+/** Build the set of data sources roomba aggregates over. */
+export function createSources(options: { cache: boolean }): RoomSource[] {
+  const fetcher = options.cache ? createCachingFetcher(directFetcher) : directFetcher;
+  return [new VimmRoomSource({ fetcher })];
+}
 
 export interface ConsoleRow {
   name: string;
@@ -11,9 +15,7 @@ export interface ConsoleRow {
 }
 
 /** Load consoles from every source and merge them by alias. */
-export async function collectConsoles(
-  sources: RoomSource[] = SOURCES,
-): Promise<ConsoleRow[]> {
+export async function collectConsoles(sources: RoomSource[]): Promise<ConsoleRow[]> {
   const results = await Promise.all(
     sources.map(async (source) => ({
       id: source.id,

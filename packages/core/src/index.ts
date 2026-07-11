@@ -34,6 +34,22 @@ export interface DownloadRequest {
   headers: Record<string, string>;
 }
 
+/** Result of an HTTP GET performed by a Fetcher. */
+export interface HttpResponse {
+  status: number;
+  ok: boolean;
+  body: string;
+}
+
+/**
+ * Performs an HTTP GET for a URL with optional headers, returning the body.
+ * Injected into sources so callers can layer caching (or not) around it.
+ */
+export type Fetcher = (
+  url: URL,
+  headers?: Record<string, string>,
+) => Promise<HttpResponse>;
+
 export interface RoomSource {
   id: string;
   baseURL: URL;

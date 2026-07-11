@@ -1,5 +1,4 @@
-import type { GameFile } from "@roomba/core";
-import { SOURCES } from "./sources.js";
+import type { GameFile, RoomSource } from "@roomba/core";
 
 export interface SearchFilters {
   /** Case-insensitive region substring, e.g. "usa". */
@@ -15,6 +14,7 @@ export interface SearchFilters {
  * new sources only need to implement listing + search).
  */
 export async function searchGames(
+  sources: RoomSource[],
   alias: string,
   query: string,
   filters: SearchFilters = {},
@@ -23,7 +23,7 @@ export async function searchGames(
   let recognized = false;
 
   const perSource = await Promise.all(
-    SOURCES.map(async (source) => {
+    sources.map(async (source) => {
       const consoles = await source.loadConsoles();
       const match = consoles.find((console) => console.alias.toLowerCase() === wanted);
       if (!match) return [];

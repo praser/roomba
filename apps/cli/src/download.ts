@@ -4,14 +4,17 @@ import { homedir } from "node:os";
 import { basename, dirname, join, sep } from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import type { DownloadRequest } from "@roomba/core";
-import { SOURCES } from "./sources.js";
+import type { DownloadRequest, RoomSource } from "@roomba/core";
 
 /** Download a file from a source's URL, saving it locally. */
-export async function downloadFile(rawUrl: string, output?: string): Promise<void> {
+export async function downloadFile(
+  sources: RoomSource[],
+  rawUrl: string,
+  output?: string,
+): Promise<void> {
   const url = new URL(rawUrl);
 
-  const request = pickDownloadRequest(url);
+  const request = pickDownloadRequest(sources, url);
   if (!request) {
     throw new Error(`No source knows how to download ${url.href}`);
   }
@@ -36,8 +39,8 @@ export async function downloadFile(rawUrl: string, output?: string): Promise<voi
   console.log(`Saved to ${destination}`);
 }
 
-function pickDownloadRequest(url: URL): DownloadRequest | null {
-  for (const source of SOURCES) {
+function pickDownloadRequest(sources: RoomSource[], url: URL): DownloadRequest | null {
+  for (const source of sources) {
     const request = source.downloadRequest(url);
     if (request) return request;
   }

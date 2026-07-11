@@ -1,11 +1,30 @@
 import { URL } from "node:url";
 import { parse } from "node-html-parser";
-import type { Console, DownloadRequest, GameFile, RoomSource } from "@roomba/core";
+import type {
+  Console,
+  DownloadRequest,
+  Fetcher,
+  GameFile,
+  HttpResponse,
+  RoomSource,
+} from "@roomba/core";
 import { parseSearchListings, parseVariations } from "./parse.js";
 
 export const VIMM_BASE_URL = "https://vimm.net";
 
 const USER_AGENT = "roomba (+https://vimm.net)";
+
+/** Default uncached Fetcher: a plain HTTP GET via global fetch. */
+export const directFetcher: Fetcher = async (url, headers): Promise<HttpResponse> => {
+  const response = await fetch(url, { headers });
+  return { status: response.status, ok: response.ok, body: await response.text() };
+};
+
+export interface VimmOptions {
+  baseURL?: string;
+  /** HTTP fetcher to use for scraping requests (e.g. a caching wrapper). */
+  fetcher?: Fetcher;
+}
 
 // Vimm's download hosts reject non-browser User-Agents and require a matching
 // Referer, so downloads need this browser-like UA rather than USER_AGENT.
@@ -21,9 +40,11 @@ const SEARCH_CONCURRENCY = 8;
 export class VimmRoomSource implements RoomSource {
   readonly id = "vimm";
   readonly baseURL;
+  private readonly fetcher: Fetcher;
 
-  constructor(baseURL: string = VIMM_BASE_URL) {
-    this.baseURL = new URL(baseURL);
+  constructor(options: VimmOptions = {}) {
+    this.baseURL = new URL(options.baseURL ?? VIMM_BASE_URL);
+    this.fetcher = options.fetcher ?? directFetcher;
   }
 
   /** Build the vault URL for a console alias (e.g. "PS2" -> https://vimm.net/vault/PS2). */
@@ -109,16 +130,14 @@ export class VimmRoomSource implements RoomSource {
   private async fetchText(url: URL, options?: { allow404: false }): Promise<string>;
   private async fetchText(url: URL, options: { allow404: true }): Promise<string | null>;
   private async fetchText(url: URL, options?: { allow404: boolean }): Promise<string | null> {
-    const response = await fetch(url, { headers: { "user-agent": USER_AGENT } });
+    const response = await this.fetcher(url, { "user-agent": USER_AGENT });
     if (options?.allow404 && response.status === 404) {
       return null;
     }
     if (!response.ok) {
-      throw new Error(
-        `Failed to fetch ${url.href}: ${response.status} ${response.statusText}`,
-      );
+      throw new Error(`Failed to fetch ${url.href}: HTTP ${response.status}`);
     }
-    return response.text();
+    return response.body;
   }
 }
 

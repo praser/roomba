@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import { Command, Option } from "commander";
+import { cleanCache } from "./cache.js";
 import { downloadFile } from "./download.js";
 import { searchGames } from "./games.js";
-import { collectConsoles } from "./sources.js";
+import { collectConsoles, createSources } from "./sources.js";
 import { renderTable } from "./table.js";
 
 const program = new Command();
@@ -11,8 +12,9 @@ program.name("roomba").description("Retro ROM vault aggregator");
 program
   .command("consoles")
   .description("List every console available across all sources")
-  .action(async () => {
-    const rows = await collectConsoles();
+  .option("--no-cache", "bypass the HTTP cache and fetch fresh")
+  .action(async (options: { cache: boolean }) => {
+    const rows = await collectConsoles(createSources({ cache: options.cache }));
     const table = renderTable(
       ["Console", "Alias", "Sources"],
       rows.map((row) => [row.name, row.alias, row.sources.join(", ")]),
@@ -28,14 +30,16 @@ program
   .option("-r, --region <region>", "filter by region (case-insensitive)")
   .option("-l, --lang <language>", "filter by language code (case-insensitive)")
   .addOption(new Option("--language <language>", "alias for --lang").hideHelp())
+  .option("--no-cache", "bypass the HTTP cache and fetch fresh")
   .action(
     async (
       alias: string,
       queryParts: string[],
-      options: { region?: string; lang?: string; language?: string },
+      options: { region?: string; lang?: string; language?: string; cache: boolean },
     ) => {
       const query = queryParts.join(" ");
-      const rows = await searchGames(alias, query, {
+      const sources = createSources({ cache: options.cache });
+      const rows = await searchGames(sources, alias, query, {
         region: options.region,
         language: options.lang ?? options.language,
       });
@@ -70,7 +74,15 @@ program
   )
   .description("Download a game file")
   .action(async (url: string, options: { output?: string }) => {
-    await downloadFile(url, options.output);
+    await downloadFile(createSources({ cache: false }), url, options.output);
+  });
+
+program
+  .command("clean-cache")
+  .description("Delete all cached HTTP responses")
+  .action(async () => {
+    await cleanCache();
+    console.log("Cache cleared.");
   });
 
 try {
