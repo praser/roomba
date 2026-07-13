@@ -1,0 +1,44 @@
+name: release
+
+on:
+  push:
+    branches: [main]
+
+# Only push tags/releases; we never commit back to main, so a protected
+# main is fine. The default GITHUB_TOKEN can push tags and create releases.
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # Skip runs whose head commit asks to (belt-and-suspenders; tag pushes
+    # don't hit this workflow, and GITHUB_TOKEN pushes don't recurse).
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # need full history + tags to compute the next version
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm test # all tests must pass before anything is released
+
+      - name: Release changed packages
+        env:
+          # SHAs only — never interpolate commit messages into the shell.
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash .github/scripts/release.sh

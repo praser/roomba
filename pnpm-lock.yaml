@@ -18,7 +18,7 @@ importers:
   apps/cli:
     dependencies:
       '@praser/roomba-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../packages/core
       commander:
         specifier: ^13.1.0

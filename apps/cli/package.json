@@ -1,13 +1,15 @@
 {
   "name": "@praser/roomba",
   "version": "2.0.0",
-  "private": true,
   "description": "roomba command-line interface",
   "license": "MIT",
   "author": "Rubens Praser Junior",
   "type": "module",
   "bin": {
     "roomba": "./dist/index.js"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "files": [
     "dist"
@@ -18,7 +20,7 @@
     "clean": "rm -rf dist tsconfig.tsbuildinfo"
   },
   "dependencies": {
-    "@praser/roomba-core": "workspace:*",
+    "@praser/roomba-core": "workspace:^",
     "commander": "^13.1.0"
   },
   "devDependencies": {
