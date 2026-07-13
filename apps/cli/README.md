@@ -97,6 +97,9 @@ independently versioned packages that implement the `RoomSource` contract
 from `@praser/roomba-core` and are distributed as a single bundled `.mjs` file (see
 [roomba-vimm](https://github.com/praser/roomba-vimm) for an example).
 
+To build your own engine, see the
+[engine authoring guide](../../docs/writing-engines.md).
+
 ### `roomba engine install <url>`
 
 Download an engine bundle from `<url>`, validate it, and register it.

@@ -93,6 +93,9 @@ needs to fetch and parse, not implement filtering or caching.
 
 ### Writing an engine
 
+**See the complete guide: [`docs/writing-engines.md`](docs/writing-engines.md).**
+In short:
+
 1. Build a standalone package that bundles to a single ESM file exporting a
    `RoomEngine` (`id`, `name`, `version`, `apiVersion`, and a `create(ctx)`
    that returns a `RoomSource` implementing `@praser/roomba-core`'s contract). See
