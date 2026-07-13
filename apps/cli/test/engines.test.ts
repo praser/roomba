@@ -44,6 +44,13 @@ afterEach(async () => {
   await rm(dir, { recursive: true, force: true });
 });
 
+describe("readRegistry", () => {
+  it("returns an empty list when registry.json is valid JSON but not an array", async () => {
+    await writeFile(join(dir, "registry.json"), "{}");
+    expect(await readRegistry(dir)).toEqual([]);
+  });
+});
+
 describe("installEngine", () => {
   it("downloads, validates, writes the bundle and a registry entry", async () => {
     const entry = await installEngine("https://x.test/e.mjs", {
@@ -84,6 +91,19 @@ describe("installEngine", () => {
       }),
     ).rejects.toThrow(/API version/);
     expect(await readRegistry(dir)).toHaveLength(0);
+  });
+
+  it("reinstalling the same engine id replaces, not duplicates, its registry entry", async () => {
+    const options = {
+      dir,
+      download: async () => fixtureBundle(),
+      confirm: async () => true,
+    };
+
+    await installEngine("https://x.test/e.mjs", options);
+    await installEngine("https://x.test/e.mjs", options);
+
+    expect(await readRegistry(dir)).toHaveLength(1);
   });
 });
 
@@ -149,5 +169,9 @@ describe("removeEngine", () => {
 describe("validateEngine", () => {
   it("throws when there is no default export", () => {
     expect(() => validateEngine({})).toThrow(/default export/);
+  });
+
+  it("throws when the default export is missing a required field", () => {
+    expect(() => validateEngine({ default: { id: "x" } })).toThrow(/valid RoomEngine/);
   });
 });

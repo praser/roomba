@@ -38,7 +38,8 @@ function bundleFile(dir: string, id: string): string {
 /** Read the installed-engine registry. Missing or corrupt → empty list. */
 export async function readRegistry(dir: string): Promise<RegistryEntry[]> {
   try {
-    return JSON.parse(await readFile(registryFile(dir), "utf8")) as RegistryEntry[];
+    const parsed = JSON.parse(await readFile(registryFile(dir), "utf8"));
+    return Array.isArray(parsed) ? (parsed as RegistryEntry[]) : [];
   } catch {
     return [];
   }
