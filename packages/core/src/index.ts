@@ -65,3 +65,33 @@ export interface RoomSource {
    */
   downloadRequest: (url: URL) => DownloadRequest | null;
 }
+
+/**
+ * The engine contract major version roomba speaks. Bump when RoomSource or
+ * RoomEngine change incompatibly; roomba refuses to load an engine whose
+ * apiVersion differs from this.
+ */
+export const ENGINE_API_VERSION = 1;
+
+/** What roomba injects into an engine when constructing its RoomSource. */
+export interface EngineContext {
+  /**
+   * HTTP fetcher roomba provides (may be caching). Engines should use this
+   * rather than calling fetch directly, so caching/offline behavior works.
+   */
+  fetcher: Fetcher;
+}
+
+/** The value an engine bundle must default-export. */
+export interface RoomEngine {
+  /** Stable, unique id, e.g. "vimm". Also the on-disk filename + registry key. */
+  id: string;
+  /** Human-readable name. */
+  name: string;
+  /** The ENGINE_API_VERSION the engine was built against. */
+  apiVersion: number;
+  /** The engine's own semver, shown in `roomba engine list`. */
+  version: string;
+  /** Construct the RoomSource. */
+  create(ctx: EngineContext): RoomSource;
+}
