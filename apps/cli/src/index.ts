@@ -4,6 +4,7 @@ import { Command, Option } from "commander";
 import { cleanCache } from "./cache.js";
 import { downloadFile } from "./download.js";
 import {
+  defaultDownload,
   defaultEnginesDir,
   installEngine,
   readRegistry,
@@ -123,11 +124,7 @@ engine
   .action(async (url: string, options: { yes?: boolean }) => {
     const entry = await installEngine(url, {
       dir: defaultEnginesDir(),
-      download: async (u) => {
-        const res = await fetch(u);
-        if (!res.ok) throw new Error(`Failed to download ${u}: HTTP ${res.status}`);
-        return res.text();
-      },
+      download: (u) => defaultDownload(u),
       confirm: () => confirmInstall(url, options.yes ?? false),
     });
     if (!entry) {

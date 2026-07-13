@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   ENGINE_API_VERSION,
   type EngineContext,
@@ -70,6 +70,9 @@ export function validateEngine(mod: unknown): RoomEngine {
   ) {
     throw new Error("default export is not a valid RoomEngine");
   }
+  if (!/^[a-z0-9][a-z0-9._-]*$/i.test(e.id)) {
+    throw new Error(`engine id "${e.id}" is not a valid identifier`);
+  }
   if (e.apiVersion !== ENGINE_API_VERSION) {
     throw new Error(
       `engine targets API version ${e.apiVersion}, but roomba speaks ${ENGINE_API_VERSION}`,
@@ -82,6 +85,25 @@ export function validateEngine(mod: unknown): RoomEngine {
 export async function importEngine(bundlePath: string): Promise<RoomEngine> {
   const mod = await import(pathToFileURL(bundlePath).href);
   return validateEngine(mod);
+}
+
+/**
+ * Default `download` for `installEngine`: fetches http(s) URLs, reads
+ * `file:` URLs and local filesystem paths, and rejects other URL schemes.
+ */
+export async function defaultDownload(url: string): Promise<string> {
+  if (/^https?:\/\//i.test(url)) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Failed to download ${url}: HTTP ${res.status}`);
+    return res.text();
+  }
+  if (url.startsWith("file:")) {
+    return readFile(fileURLToPath(url), "utf8");
+  }
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(url)) {
+    throw new Error(`Unsupported URL scheme for engine install: ${url}`);
+  }
+  return readFile(url, "utf8");
 }
 
 export interface InstallOptions {
@@ -107,31 +129,27 @@ export async function installEngine(
 
   // Write to a temp file first so a bad bundle never lands under <id>.mjs.
   const tmpDir = await mkdtemp(join(options.dir, ".install-"));
-  const tmpFile = join(tmpDir, "engine.mjs");
-  await writeFile(tmpFile, source);
-
-  let engine: RoomEngine;
   try {
-    engine = await importEngine(tmpFile);
-  } catch (error) {
+    const tmpFile = join(tmpDir, "engine.mjs");
+    await writeFile(tmpFile, source);
+
+    const engine = await importEngine(tmpFile);
+    await rename(tmpFile, bundleFile(options.dir, engine.id));
+
+    const entry: RegistryEntry = {
+      id: engine.id,
+      name: engine.name,
+      version: engine.version,
+      apiVersion: engine.apiVersion,
+      sourceUrl: url,
+      installedAt: new Date().toISOString(),
+    };
+    const others = (await readRegistry(options.dir)).filter((e) => e.id !== engine.id);
+    await writeRegistry(options.dir, [...others, entry]);
+    return entry;
+  } finally {
     await rm(tmpDir, { recursive: true, force: true });
-    throw error;
   }
-
-  await rename(tmpFile, bundleFile(options.dir, engine.id));
-  await rm(tmpDir, { recursive: true, force: true });
-
-  const entry: RegistryEntry = {
-    id: engine.id,
-    name: engine.name,
-    version: engine.version,
-    apiVersion: engine.apiVersion,
-    sourceUrl: url,
-    installedAt: new Date().toISOString(),
-  };
-  const others = (await readRegistry(options.dir)).filter((e) => e.id !== engine.id);
-  await writeRegistry(options.dir, [...others, entry]);
-  return entry;
 }
 
 /** Remove an installed engine by id. Throws if it is not installed. */

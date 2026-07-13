@@ -2,8 +2,9 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { EngineContext } from "@roomba/core";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  defaultDownload,
   installEngine,
   loadEngines,
   readRegistry,
@@ -127,23 +128,32 @@ describe("loadEngines", () => {
   });
 
   it("skips an installed engine whose apiVersion no longer matches", async () => {
-    // Hand-place a bundle + registry entry with a bad apiVersion.
-    await writeFile(join(dir, "stale.mjs"), fixtureBundle(999).replace(/"fixture"/g, '"stale"'));
-    await writeFile(
-      join(dir, "registry.json"),
-      JSON.stringify([
-        {
-          id: "stale",
-          name: "Stale",
-          version: "1.0.0",
-          apiVersion: 999,
-          sourceUrl: "https://x.test/stale.mjs",
-          installedAt: "2026-07-13T00:00:00.000Z",
-        },
-      ]),
-    );
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      // Hand-place a bundle + registry entry with a bad apiVersion.
+      await writeFile(
+        join(dir, "stale.mjs"),
+        fixtureBundle(999).replace(/"fixture"/g, '"stale"'),
+      );
+      await writeFile(
+        join(dir, "registry.json"),
+        JSON.stringify([
+          {
+            id: "stale",
+            name: "Stale",
+            version: "1.0.0",
+            apiVersion: 999,
+            sourceUrl: "https://x.test/stale.mjs",
+            installedAt: "2026-07-13T00:00:00.000Z",
+          },
+        ]),
+      );
 
-    expect(await loadEngines(dir, ctx)).toEqual([]);
+      expect(await loadEngines(dir, ctx)).toEqual([]);
+      expect(warn).toHaveBeenCalledWith(expect.stringMatching(/stale/));
+    } finally {
+      warn.mockRestore();
+    }
   });
 });
 
@@ -173,5 +183,29 @@ describe("validateEngine", () => {
 
   it("throws when the default export is missing a required field", () => {
     expect(() => validateEngine({ default: { id: "x" } })).toThrow(/valid RoomEngine/);
+  });
+
+  it("throws when the id is a path traversal, not a valid identifier", () => {
+    expect(() =>
+      validateEngine({
+        default: {
+          id: "../pwned",
+          name: "x",
+          version: "1.0.0",
+          apiVersion: 1,
+          create: () => ({}),
+        },
+      }),
+    ).toThrow(/not a valid identifier|valid/);
+  });
+});
+
+describe("defaultDownload", () => {
+  it("reads a local filesystem path", async () => {
+    const contents = "export default { id: \"fixture\" };\n";
+    const path = join(dir, "engine.mjs");
+    await writeFile(path, contents);
+
+    expect(await defaultDownload(path)).toBe(contents);
   });
 });

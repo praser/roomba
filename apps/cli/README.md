@@ -111,7 +111,10 @@ Installed 'vimm' (Vimm's Lair 1.0.0).
 
 Because an engine is arbitrary code that runs inside the roomba process,
 `install` always warns and asks for confirmation before downloading and
-running it.
+running it. That confirmation (or `--yes`) is the only trust gate: a
+downloaded bundle's top-level code executes the moment it's imported, and
+roomba's validation checks that it looks like a well-formed engine — it is
+not a security sandbox.
 
 | Option | Description |
 |---|---|
