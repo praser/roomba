@@ -1,4 +1,4 @@
-# @roomba/cli
+# @praser/roomba
 
 The `roomba` command-line app. It loads whatever engines you've installed
 (see [Engines](#engines) below) and adds the cross-cutting behavior —
@@ -94,7 +94,7 @@ Delete all cached HTTP responses.
 roomba ships with no built-in sources. Everything under `consoles`, `search`,
 and `download` is powered by **engines** you install yourself — small,
 independently versioned packages that implement the `RoomSource` contract
-from `@roomba/core` and are distributed as a single bundled `.mjs` file (see
+from `@praser/roomba-core` and are distributed as a single bundled `.mjs` file (see
 [roomba-engine-vimm](https://github.com/) for an example).
 
 ### `roomba engine install <url>`

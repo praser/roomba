@@ -1,4 +1,4 @@
-import { ENGINE_API_VERSION, type RoomEngine } from "@roomba/core";
+import { ENGINE_API_VERSION, type RoomEngine } from "@praser/roomba-core";
 import { VimmRoomSource } from "./source.js";
 
 export { VimmRoomSource } from "./source.js";

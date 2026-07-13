@@ -17,7 +17,7 @@ importers:
 
   apps/cli:
     dependencies:
-      '@roomba/core':
+      '@praser/roomba-core':
         specifier: workspace:*
         version: link:../../packages/core
       commander:
@@ -43,7 +43,7 @@ importers:
         specifier: ^7.0.1
         version: 7.1.0
     devDependencies:
-      '@roomba/core':
+      '@praser/roomba-core':
         specifier: workspace:*
         version: link:../packages/core
       '@types/node':

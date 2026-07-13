@@ -1,5 +1,5 @@
 {
-  "name": "@roomba/core",
+  "name": "@praser/roomba-core",
   "version": "1.1.0",
   "description": "Core business rules for roomba",
   "license": "MIT",

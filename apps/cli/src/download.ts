@@ -4,7 +4,7 @@ import { homedir } from "node:os";
 import { basename, dirname, join, sep } from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import type { DownloadRequest, RoomSource } from "@roomba/core";
+import type { DownloadRequest, RoomSource } from "@praser/roomba-core";
 
 /** Download a file from a source's URL, saving it locally. */
 export async function downloadFile(

@@ -1,5 +1,5 @@
 {
-  "name": "@roomba/cli",
+  "name": "@praser/roomba",
   "version": "2.0.0",
   "private": true,
   "description": "roomba command-line interface",
@@ -18,7 +18,7 @@
     "clean": "rm -rf dist tsconfig.tsbuildinfo"
   },
   "dependencies": {
-    "@roomba/core": "workspace:*",
+    "@praser/roomba-core": "workspace:*",
     "commander": "^13.1.0"
   },
   "devDependencies": {

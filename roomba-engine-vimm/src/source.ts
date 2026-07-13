@@ -7,7 +7,7 @@ import type {
   GameFile,
   HttpResponse,
   RoomSource,
-} from "@roomba/core";
+} from "@praser/roomba-core";
 import { parseSearchListings, parseVariations } from "./parse.js";
 
 export const VIMM_BASE_URL = "https://vimm.net";

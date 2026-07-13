@@ -1,5 +1,5 @@
 {
-  "name": "roomba-engine-vimm",
+  "name": "@praser/roomba-vimm",
   "version": "1.0.0",
   "description": "Vimm's Lair engine for roomba",
   "license": "MIT",
@@ -18,7 +18,7 @@
     "node-html-parser": "^7.0.1"
   },
   "devDependencies": {
-    "@roomba/core": "workspace:*",
+    "@praser/roomba-core": "workspace:*",
     "@types/node": "^22.20.1",
     "esbuild": "^0.24.0",
     "typescript": "^5.7.2",

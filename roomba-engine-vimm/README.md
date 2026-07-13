@@ -15,5 +15,5 @@ pnpm build   # -> dist/vimm.mjs
 roomba engine install <url-to-dist/vimm.mjs>
 ```
 
-The bundle default-exports a `RoomEngine` (see `@roomba/core`) with `id: "vimm"`,
+The bundle default-exports a `RoomEngine` (see `@praser/roomba-core`) with `id: "vimm"`,
 built against `ENGINE_API_VERSION` 1.

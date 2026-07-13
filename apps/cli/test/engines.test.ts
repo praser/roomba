@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { EngineContext } from "@roomba/core";
+import type { EngineContext } from "@praser/roomba-core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   defaultDownload,

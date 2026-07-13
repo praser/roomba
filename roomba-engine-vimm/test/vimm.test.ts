@@ -1,4 +1,4 @@
-import type { Fetcher, HttpResponse } from "@roomba/core";
+import type { Fetcher, HttpResponse } from "@praser/roomba-core";
 import { describe, expect, it } from "vitest";
 import { VimmRoomSource } from "../src/source.js";
 

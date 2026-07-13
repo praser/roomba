@@ -62,12 +62,12 @@ two tiers:
 
 | Tier | Path | Members |
 |---|---|---|
-| **Packages** — shared libraries | `packages/*` | [`@roomba/core`](packages/core/README.md) |
-| **Apps** — end-user programs | `apps/*` | [`@roomba/cli`](apps/cli/README.md) |
+| **Packages** — shared libraries | `packages/*` | [`@praser/roomba-core`](packages/core/README.md) |
+| **Apps** — end-user programs | `apps/*` | [`@praser/roomba`](apps/cli/README.md) |
 
 **Engines are distributed in their own repositories, not bundled into roomba
 as batteries included.** Each engine is a self-contained implementation of the
-`RoomSource` contract that depends only on `@roomba/core`, so it can be built,
+`RoomSource` contract that depends only on `@praser/roomba-core`, so it can be built,
 tested, versioned, and published on its own. Users install whichever engines
 they want at runtime with `roomba engine install <url>`; roomba loads them
 from disk.
@@ -76,14 +76,14 @@ from disk.
 
 roomba keeps a clean separation so new engines are cheap to add:
 
-- **`@roomba/core`** owns the vocabulary — `Console`, `GameFile`, and the
+- **`@praser/roomba-core`** owns the vocabulary — `Console`, `GameFile`, and the
   `RoomSource` interface that every engine implements. No I/O, no scraping.
 - **An engine** (e.g. [roomba-engine-vimm](https://github.com/)) implements
   `RoomSource`: list consoles, search, resolve a console alias, and describe
   how to download its URLs. HTTP access is done through an injected
   `Fetcher`, so caching is transparent, and the engine depends on nothing but
-  `@roomba/core`.
-- **`@roomba/cli`** wires engines together and does the cross-cutting work *on
+  `@praser/roomba-core`.
+- **`@praser/roomba`** wires engines together and does the cross-cutting work *on
   our side*: alias normalization (case-insensitive), region/language filtering,
   caching, and rendering.
 
@@ -95,7 +95,7 @@ needs to fetch and parse, not implement filtering or caching.
 
 1. Build a standalone package that bundles to a single ESM file exporting a
    `RoomEngine` (`id`, `name`, `version`, `apiVersion`, and a `create(ctx)`
-   that returns a `RoomSource` implementing `@roomba/core`'s contract). See
+   that returns a `RoomSource` implementing `@praser/roomba-core`'s contract). See
    [roomba-engine-vimm](https://github.com/) for a reference implementation.
 2. Publish the bundle somewhere reachable by URL.
 3. Users run `roomba engine install <url>` to add it — no changes to roomba

@@ -7,7 +7,7 @@ import {
   type EngineContext,
   type RoomEngine,
   type RoomSource,
-} from "@roomba/core";
+} from "@praser/roomba-core";
 
 /** On-disk location for installed engines (honors XDG_DATA_HOME). */
 export function defaultEnginesDir(): string {

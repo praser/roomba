@@ -1,4 +1,4 @@
-import type { Fetcher, HttpResponse, RoomSource } from "@roomba/core";
+import type { Fetcher, HttpResponse, RoomSource } from "@praser/roomba-core";
 import { createCachingFetcher } from "./cache.js";
 import { defaultEnginesDir, loadEngines } from "./engines.js";
 

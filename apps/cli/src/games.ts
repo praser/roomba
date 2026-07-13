@@ -1,4 +1,4 @@
-import type { GameFile, RoomSource } from "@roomba/core";
+import type { GameFile, RoomSource } from "@praser/roomba-core";
 
 export interface SearchFilters {
   /** Case-insensitive region substring, e.g. "usa". */
