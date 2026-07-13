@@ -6,7 +6,7 @@ you can list consoles, search a console's games (one row per downloadable file),
 and download files — all from your terminal.
 
 roomba ships with no sources — you install **engines** (e.g.
-[roomba-engine-vimm](https://github.com/), which scrapes
+[roomba-vimm](https://github.com/praser/roomba-vimm), which scrapes
 [Vimm's Lair](https://vimm.net)) with `roomba engine install <url>`.
 
 ```
@@ -78,7 +78,7 @@ roomba keeps a clean separation so new engines are cheap to add:
 
 - **`@praser/roomba-core`** owns the vocabulary — `Console`, `GameFile`, and the
   `RoomSource` interface that every engine implements. No I/O, no scraping.
-- **An engine** (e.g. [roomba-engine-vimm](https://github.com/)) implements
+- **An engine** (e.g. [roomba-vimm](https://github.com/praser/roomba-vimm)) implements
   `RoomSource`: list consoles, search, resolve a console alias, and describe
   how to download its URLs. HTTP access is done through an injected
   `Fetcher`, so caching is transparent, and the engine depends on nothing but
@@ -96,7 +96,7 @@ needs to fetch and parse, not implement filtering or caching.
 1. Build a standalone package that bundles to a single ESM file exporting a
    `RoomEngine` (`id`, `name`, `version`, `apiVersion`, and a `create(ctx)`
    that returns a `RoomSource` implementing `@praser/roomba-core`'s contract). See
-   [roomba-engine-vimm](https://github.com/) for a reference implementation.
+   [roomba-vimm](https://github.com/praser/roomba-vimm) for a reference implementation.
 2. Publish the bundle somewhere reachable by URL.
 3. Users run `roomba engine install <url>` to add it — no changes to roomba
    itself are needed.

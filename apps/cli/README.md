@@ -95,7 +95,7 @@ roomba ships with no built-in sources. Everything under `consoles`, `search`,
 and `download` is powered by **engines** you install yourself — small,
 independently versioned packages that implement the `RoomSource` contract
 from `@praser/roomba-core` and are distributed as a single bundled `.mjs` file (see
-[roomba-engine-vimm](https://github.com/) for an example).
+[roomba-vimm](https://github.com/praser/roomba-vimm) for an example).
 
 ### `roomba engine install <url>`
 
