@@ -1,8 +1,9 @@
 # @roomba/cli
 
-The `roomba` command-line app. It wires the available [engines](../../engines/vimm)
-together and adds the cross-cutting behavior — case-insensitive alias matching,
-region/language filtering, an on-disk HTTP cache, and table rendering.
+The `roomba` command-line app. It loads whatever engines you've installed
+(see [Engines](#engines) below) and adds the cross-cutting behavior —
+case-insensitive alias matching, region/language filtering, an on-disk HTTP
+cache, and table rendering.
 
 > Part of the [roomba](../../README.md) monorepo.
 
@@ -88,6 +89,61 @@ Behavior:
 
 Delete all cached HTTP responses.
 
+## Engines
+
+roomba ships with no built-in sources. Everything under `consoles`, `search`,
+and `download` is powered by **engines** you install yourself — small,
+independently versioned packages that implement the `RoomSource` contract
+from `@roomba/core` and are distributed as a single bundled `.mjs` file (see
+[roomba-engine-vimm](https://github.com/) for an example).
+
+### `roomba engine install <url>`
+
+Download an engine bundle from `<url>`, validate it, and register it.
+
+```
+$ roomba engine install "https://example.com/vimm.mjs"
+⚠  Installs and runs untrusted code from:
+   https://example.com/vimm.mjs
+Continue? [y/N] y
+Installed 'vimm' (Vimm's Lair 1.0.0).
+```
+
+Because an engine is arbitrary code that runs inside the roomba process,
+`install` always warns and asks for confirmation before downloading and
+running it.
+
+| Option | Description |
+|---|---|
+| `-y, --yes` | Skip the confirmation prompt (e.g. for scripted installs) |
+
+### `roomba engine list`
+
+List installed engines.
+
+```
+$ roomba engine list
+Id   | Name        | Version | Source
+vimm | Vimm's Lair | 1.0.0   | https://example.com/vimm.mjs
+```
+
+### `roomba engine remove <id>`
+
+Remove an installed engine by its id (from `roomba engine list`).
+
+```
+$ roomba engine remove vimm
+Removed 'vimm'.
+```
+
+With no engines installed, `consoles`, `search`, and `download` print a hint
+instead of failing:
+
+```
+No engines installed. Install one with:
+  roomba engine install <url>
+```
+
 ## Cache
 
 Search and console listings are cached to reduce repeated requests to sources:
@@ -106,6 +162,7 @@ Downloads never use the cache.
 |---|---|
 | `src/index.ts` | Commander program: command/flag definitions |
 | `src/sources.ts` | `createSources({ cache })` + console aggregation |
+| `src/engines.ts` | Engine install/list/remove, on-disk registry, dynamic loading |
 | `src/games.ts` | Search across sources, alias normalization, filtering |
 | `src/download.ts` | Streaming download, filename resolution, progress |
 | `src/cache.ts` | Filesystem caching `Fetcher` wrapper |
