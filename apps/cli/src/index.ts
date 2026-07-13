@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { spawn } from "node:child_process";
 import { createInterface } from "node:readline/promises";
 import { Command, Option } from "commander";
 import { cleanCache } from "./cache.js";
@@ -11,11 +12,53 @@ import {
   removeEngine,
 } from "./engines.js";
 import { searchGames } from "./games.js";
+import { updateCli, type Updater } from "./self-update.js";
 import { collectConsoles, createSources } from "./sources.js";
 import { renderTable } from "./table.js";
+import { cliPackage, collectVersions, formatVersions } from "./version.js";
+
+// `roomba --version` / `-v` prints CLI, core, and installed-engine versions.
+// Handled up front (rather than via commander's plain version string) so it
+// can read the registry, but only when it's the first argument — so it never
+// shadows a subcommand's own flags.
+const firstArg = process.argv[2];
+if (firstArg === "-v" || firstArg === "--version") {
+  console.log(formatVersions(await collectVersions()));
+  process.exit(0);
+}
 
 const program = new Command();
 program.name("roomba").description("Retro ROM vault aggregator");
+
+/** Run a command, capturing stdout. Rejects on non-zero exit. */
+function runCapture(cmd: string, args: string[]): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(cmd, args, { stdio: ["ignore", "pipe", "inherit"] });
+    let out = "";
+    child.stdout.on("data", (chunk) => (out += chunk));
+    child.on("error", reject);
+    child.on("close", (code) =>
+      code === 0 ? resolve(out) : reject(new Error(`${cmd} exited with code ${code}`)),
+    );
+  });
+}
+
+/** Run a command inheriting stdio (so npm's output streams through). */
+function runInherit(cmd: string, args: string[]): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(cmd, args, { stdio: "inherit" });
+    child.on("error", reject);
+    child.on("close", (code) =>
+      code === 0 ? resolve() : reject(new Error(`${cmd} exited with code ${code}`)),
+    );
+  });
+}
+
+/** Update the CLI via npm's global install. */
+const npmUpdater: Updater = {
+  latest: (pkg) => runCapture("npm", ["view", pkg, "version"]),
+  install: (spec) => runInherit("npm", ["install", "-g", spec]),
+};
 
 function printNoEngines(): void {
   console.log("No engines installed. Install one with:\n  roomba engine install <url>");
@@ -157,6 +200,14 @@ engine
   .action(async (id: string) => {
     await removeEngine(defaultEnginesDir(), id);
     console.log(`Removed '${id}'.`);
+  });
+
+program
+  .command("update")
+  .description("Update roomba to the latest published version (via npm)")
+  .action(async () => {
+    const { name, version } = cliPackage();
+    await updateCli(name, version, npmUpdater);
   });
 
 try {

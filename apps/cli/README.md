@@ -150,6 +150,33 @@ No engines installed. Install one with:
   roomba engine install <url>
 ```
 
+## Version
+
+`roomba --version` (or `-v`) prints the CLI version, the installed
+`@praser/roomba-core` version, and every installed engine with its version:
+
+```
+$ roomba --version
+@praser/roomba 2.0.0
+@praser/roomba-core 1.1.0
+engines:
+  vimm 1.0.0
+```
+
+## `roomba update`
+
+Update roomba to the latest published version. It compares the running version
+against the latest on npm and, if newer, runs `npm install -g @praser/roomba@latest`.
+
+```
+$ roomba update
+Updating roomba 2.0.0 → 2.0.1 …
+Updated to 2.0.1. Run `roomba --version` to confirm.
+```
+
+Updates are performed with npm; if you installed roomba with another package
+manager, update with that tool instead.
+
 ## Cache
 
 Search and console listings are cached to reduce repeated requests to sources:
@@ -169,6 +196,8 @@ Downloads never use the cache.
 | `src/index.ts` | Commander program: command/flag definitions |
 | `src/sources.ts` | `createSources({ cache })` + console aggregation |
 | `src/engines.ts` | Engine install/list/remove, on-disk registry, dynamic loading |
+| `src/version.ts` | Collect + format CLI/core/engine versions for `--version` |
+| `src/self-update.ts` | `updateCli` — compare against latest and install |
 | `src/games.ts` | Search across sources, alias normalization, filtering |
 | `src/download.ts` | Streaming download, filename resolution, progress |
 | `src/cache.ts` | Filesystem caching `Fetcher` wrapper |

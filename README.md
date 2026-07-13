@@ -51,6 +51,8 @@ Or invoke the built entry directly: `node apps/cli/dist/index.js <command>`.
 | `roomba engine install <url>` | Download and install an engine from a URL |
 | `roomba engine list` | List installed engines |
 | `roomba engine remove <id>` | Remove an installed engine |
+| `roomba update` | Update roomba to the latest published version |
+| `roomba --version` | Print roomba, core, and installed-engine versions |
 
 See [`apps/cli/README.md`](apps/cli/README.md) for the full reference (flags,
 filters, cache behavior, and examples).
