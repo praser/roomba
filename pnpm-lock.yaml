@@ -20,9 +20,6 @@ importers:
       '@roomba/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@roomba/vimm':
-        specifier: workspace:*
-        version: link:../../engines/vimm
       commander:
         specifier: ^13.1.0
         version: 13.1.0

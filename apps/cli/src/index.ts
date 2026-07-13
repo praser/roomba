@@ -1,7 +1,14 @@
 #!/usr/bin/env node
+import { createInterface } from "node:readline/promises";
 import { Command, Option } from "commander";
 import { cleanCache } from "./cache.js";
 import { downloadFile } from "./download.js";
+import {
+  defaultEnginesDir,
+  installEngine,
+  readRegistry,
+  removeEngine,
+} from "./engines.js";
 import { searchGames } from "./games.js";
 import { collectConsoles, createSources } from "./sources.js";
 import { renderTable } from "./table.js";
@@ -9,12 +16,30 @@ import { renderTable } from "./table.js";
 const program = new Command();
 program.name("roomba").description("Retro ROM vault aggregator");
 
+function printNoEngines(): void {
+  console.log("No engines installed. Install one with:\n  roomba engine install <url>");
+}
+
+async function confirmInstall(url: string, yes: boolean): Promise<boolean> {
+  console.warn(`⚠  Installs and runs untrusted code from:\n   ${url}`);
+  if (yes) return true;
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    const answer = await rl.question("Continue? [y/N] ");
+    return /^y(es)?$/i.test(answer.trim());
+  } finally {
+    rl.close();
+  }
+}
+
 program
   .command("consoles")
   .description("List every console available across all sources")
   .option("--no-cache", "bypass the HTTP cache and fetch fresh")
   .action(async (options: { cache: boolean }) => {
-    const rows = await collectConsoles(createSources({ cache: options.cache }));
+    const sources = await createSources({ cache: options.cache });
+    if (sources.length === 0) return printNoEngines();
+    const rows = await collectConsoles(sources);
     const table = renderTable(
       ["Console", "Alias", "Sources"],
       rows.map((row) => [row.name, row.alias, row.sources.join(", ")]),
@@ -38,7 +63,8 @@ program
       options: { region?: string; lang?: string; language?: string; cache: boolean },
     ) => {
       const query = queryParts.join(" ");
-      const sources = createSources({ cache: options.cache });
+      const sources = await createSources({ cache: options.cache });
+      if (sources.length === 0) return printNoEngines();
       const rows = await searchGames(sources, alias, query, {
         region: options.region,
         language: options.lang ?? options.language,
@@ -74,7 +100,9 @@ program
   )
   .description("Download a game file")
   .action(async (url: string, options: { output?: string }) => {
-    await downloadFile(createSources({ cache: false }), url, options.output);
+    const sources = await createSources({ cache: false });
+    if (sources.length === 0) return printNoEngines();
+    await downloadFile(sources, url, options.output);
   });
 
 program
@@ -83,6 +111,55 @@ program
   .action(async () => {
     await cleanCache();
     console.log("Cache cleared.");
+  });
+
+const engine = program.command("engine").description("Manage roomba engines");
+
+engine
+  .command("install")
+  .argument("<url>", "URL of an engine bundle (a single JS file)")
+  .option("-y, --yes", "skip the confirmation prompt")
+  .description("Download and install an engine from a URL")
+  .action(async (url: string, options: { yes?: boolean }) => {
+    const entry = await installEngine(url, {
+      dir: defaultEnginesDir(),
+      download: async (u) => {
+        const res = await fetch(u);
+        if (!res.ok) throw new Error(`Failed to download ${u}: HTTP ${res.status}`);
+        return res.text();
+      },
+      confirm: () => confirmInstall(url, options.yes ?? false),
+    });
+    if (!entry) {
+      console.log("Installation cancelled.");
+      return;
+    }
+    console.log(`Installed '${entry.id}' (${entry.name} ${entry.version}).`);
+  });
+
+engine
+  .command("list")
+  .description("List installed engines")
+  .action(async () => {
+    const entries = await readRegistry(defaultEnginesDir());
+    if (entries.length === 0) {
+      console.log("No engines installed.");
+      return;
+    }
+    const table = renderTable(
+      ["Id", "Name", "Version", "Source"],
+      entries.map((e) => [e.id, e.name, e.version, e.sourceUrl]),
+    );
+    console.log(table);
+  });
+
+engine
+  .command("remove")
+  .argument("<id>", "engine id (see `roomba engine list`)")
+  .description("Remove an installed engine")
+  .action(async (id: string) => {
+    await removeEngine(defaultEnginesDir(), id);
+    console.log(`Removed '${id}'.`);
   });
 
 try {
