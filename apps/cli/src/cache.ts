@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type { Fetcher, HttpResponse } from "@roomba/core";
+import type { Fetcher, HttpResponse } from "@praser/roomba-core";
 
 /** How long a cached response stays fresh: one day. */
 const TTL_MS = 24 * 60 * 60 * 1000;

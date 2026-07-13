@@ -1,4 +1,4 @@
-import type { Console, GameFile, RoomSource } from "@roomba/core";
+import type { Console, GameFile, RoomSource } from "@praser/roomba-core";
 import { describe, expect, it, vi } from "vitest";
 import { searchGames } from "../src/games.js";
 

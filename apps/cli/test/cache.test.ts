@@ -1,7 +1,7 @@
 import { mkdtemp, readdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Fetcher, HttpResponse } from "@roomba/core";
+import type { Fetcher, HttpResponse } from "@praser/roomba-core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { cleanCache, createCachingFetcher } from "../src/cache.js";
 

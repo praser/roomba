@@ -1,4 +1,4 @@
-# @roomba/core
+# @praser/roomba-core
 
 The shared vocabulary of [roomba](../../README.md): the domain types and the
 `RoomSource` contract that every data source implements. This package contains

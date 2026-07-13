@@ -1,11 +1,17 @@
-import type { RoomSource } from "@roomba/core";
-import { directFetcher, VimmRoomSource } from "@roomba/vimm";
+import type { Fetcher, HttpResponse, RoomSource } from "@praser/roomba-core";
 import { createCachingFetcher } from "./cache.js";
+import { defaultEnginesDir, loadEngines } from "./engines.js";
 
-/** Build the set of data sources roomba aggregates over. */
-export function createSources(options: { cache: boolean }): RoomSource[] {
+/** Default uncached Fetcher: a plain HTTP GET via global fetch. */
+export const directFetcher: Fetcher = async (url, headers): Promise<HttpResponse> => {
+  const response = await fetch(url, { headers });
+  return { status: response.status, ok: response.ok, body: await response.text() };
+};
+
+/** Build the set of data sources from the user's installed engines. */
+export async function createSources(options: { cache: boolean }): Promise<RoomSource[]> {
   const fetcher = options.cache ? createCachingFetcher(directFetcher) : directFetcher;
-  return [new VimmRoomSource({ fetcher })];
+  return loadEngines(defaultEnginesDir(), { fetcher });
 }
 
 export interface ConsoleRow {
