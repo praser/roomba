@@ -42,7 +42,10 @@ export async function searchGames(
     );
   }
 
-  return perSource.flat().filter((game) => matchesFilters(game, filters));
+  return perSource
+    .flat()
+    .filter((game) => matchesFilters(game, filters))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 function matchesFilters(game: GameFile, filters: SearchFilters): boolean {

@@ -53,6 +53,9 @@ export type Fetcher = (
   headers?: Record<string, string>,
 ) => Promise<HttpResponse>;
 
+/** A value that may be returned directly or as a promise. */
+export type Awaitable<T> = T | Promise<T>;
+
 export interface RoomSource {
   id: string;
   baseURL: URL;
@@ -63,10 +66,14 @@ export interface RoomSource {
   /** Search a console (by alias) for games matching a query, one entry per file. */
   search: (alias: string, query: string) => Promise<GameFile[]>;
   /**
-   * If this source recognizes the download URL, return the request (URL plus
-   * any required headers) needed to fetch it; otherwise null.
+   * If this source recognizes the download URL, return the request (final URL
+   * plus any required headers) needed to fetch it; otherwise null.
+   *
+   * May be async: an engine can navigate intermediate pages (using its injected
+   * Fetcher) to resolve the real file link before returning. roomba streams the
+   * returned URL, following redirects.
    */
-  downloadRequest: (url: URL) => DownloadRequest | null;
+  downloadRequest: (url: URL) => Awaitable<DownloadRequest | null>;
 }
 
 /**
