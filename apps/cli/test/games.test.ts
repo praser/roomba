@@ -49,6 +49,15 @@ describe("searchGames", () => {
     ]);
   });
 
+  it("sorts merged results by title", async () => {
+    const vimm = fakeSource("vimm", [SNES], [game({ name: "Zelda" }), game({ name: "Contra" })]);
+    const emu = fakeSource("emuparadise", [SNES], [game({ name: "Mario" })]);
+
+    const rows = await searchGames([vimm, emu], "snes", "q");
+
+    expect(rows.map((r) => r.name)).toEqual(["Contra", "Mario", "Zelda"]);
+  });
+
   it("throws for an unknown console", async () => {
     const source = fakeSource("vimm", [SNES], [game()]);
 

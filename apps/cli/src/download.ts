@@ -14,7 +14,7 @@ export async function downloadFile(
 ): Promise<void> {
   const url = new URL(rawUrl);
 
-  const request = pickDownloadRequest(sources, url);
+  const request = await pickDownloadRequest(sources, url);
   if (!request) {
     throw new Error(`No source knows how to download ${url.href}`);
   }
@@ -42,9 +42,14 @@ export async function downloadFile(
   console.log(`Saved to ${destination}`);
 }
 
-function pickDownloadRequest(sources: RoomSource[], url: URL): DownloadRequest | null {
+async function pickDownloadRequest(
+  sources: RoomSource[],
+  url: URL,
+): Promise<DownloadRequest | null> {
   for (const source of sources) {
-    const request = source.downloadRequest(url);
+    // Awaited: an engine may navigate intermediate pages to resolve the link.
+    // Non-matching engines reject cheaply (host check) before any network.
+    const request = await source.downloadRequest(url);
     if (request) return request;
   }
   return null;
