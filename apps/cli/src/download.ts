@@ -37,12 +37,11 @@ export async function downloadFile(
   const { source, request } = resolved;
 
   const onBatocera = detectBatocera();
-  // Resolve the console: explicit flag wins; else ask the matching engine.
-  // Only needed when we might place into a roms folder (Batocera, no -o).
-  let alias: string | null = options.console ?? null;
-  if (alias == null && onBatocera && options.output == null) {
-    alias = await source.consoleFor(url);
-  }
+  const alias = await resolveConsoleAlias(url, source, {
+    console: options.console,
+    onBatocera,
+    output: options.output,
+  });
 
   const destination = resolveDestination({ output: options.output, onBatocera, alias });
 
@@ -186,6 +185,33 @@ export function resumePlan(
 function contentRangeTotal(header: string | null): number {
   const match = header ? /\/(\d+)\s*$/.exec(header) : null;
   return match ? Number(match[1]) : 0;
+}
+
+/**
+ * Query param roomba's engines embed in each search download URL to carry the
+ * resolved Batocera console alias. roomba owns this convention, so it is read
+ * here centrally rather than relying on each engine's `consoleFor`.
+ */
+export const ROOMBA_CONSOLE_PARAM = "roomba_console";
+
+/**
+ * Resolve the console alias for a download, most-specific first:
+ *   1. the explicit `--console` flag,
+ *   2. the `roomba_console` param roomba embedded in the URL at search time,
+ *   3. the engine's `consoleFor` (only when it could matter: on Batocera with no
+ *      `-o`, since that's the sole path that places into a ROM folder).
+ * Returns null when none apply.
+ */
+export async function resolveConsoleAlias(
+  url: URL,
+  source: Pick<RoomSource, "consoleFor">,
+  options: { console?: string; onBatocera: boolean; output?: string },
+): Promise<string | null> {
+  if (options.console != null) return options.console;
+  const embedded = url.searchParams.get(ROOMBA_CONSOLE_PARAM);
+  if (embedded != null) return embedded;
+  if (options.onBatocera && options.output == null) return source.consoleFor(url);
+  return null;
 }
 
 /** Where a download should be written. */
