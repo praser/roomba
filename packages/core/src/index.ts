@@ -1,10 +1,20 @@
 export const VERSION = "0.0.0";
 
+/** Hardware category from the Batocera systems page. */
+export type ConsoleCategory =
+  | "arcade"
+  | "home-console"
+  | "portable"
+  | "home-computer"
+  | "port"; // Port, Flatpak & Miscellaneous
+
 export interface Console {
-  /** Human-readable console name, e.g. "PlayStation 2". */
+  /** Canonical display name, e.g. "Super Nintendo Entertainment System". */
   name: string;
-  /** Stable, unique identifier used to resolve a console to a source URL, e.g. "PS2". */
+  /** Batocera system / ROM-folder name, e.g. "snes". THE placement target. */
   alias: string;
+  /** Hardware category from the Batocera systems page. */
+  category: ConsoleCategory;
 }
 
 /**
@@ -74,6 +84,12 @@ export interface RoomSource {
    * returned URL, following redirects.
    */
   downloadRequest: (url: URL) => Awaitable<DownloadRequest | null>;
+  /**
+   * If this source recognizes the URL, return the catalog alias of the console
+   * it belongs to (e.g. "snes"); otherwise null. May be async: an engine can
+   * navigate intermediate pages (via its injected Fetcher) to determine it.
+   */
+  consoleFor: (url: URL) => Awaitable<string | null>;
 }
 
 /**
@@ -81,7 +97,7 @@ export interface RoomSource {
  * RoomEngine change incompatibly; roomba refuses to load an engine whose
  * apiVersion differs from this.
  */
-export const ENGINE_API_VERSION = 1;
+export const ENGINE_API_VERSION = 2;
 
 /** What roomba injects into an engine when constructing its RoomSource. */
 export interface EngineContext {

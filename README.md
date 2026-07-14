@@ -46,7 +46,7 @@ Or invoke the built entry directly: `node apps/cli/dist/index.js <command>`.
 |---|---|
 | `roomba consoles` | List every console across all sources |
 | `roomba search <alias> <query>` | Search a console's games, one row per file |
-| `roomba download <url> [-o <path>]` | Download a game file |
+| `roomba download <url> [-o <path>] [-c <alias>] [--no-refresh]` | Download a game file (on Batocera, into the system's ROM folder) |
 | `roomba clean-cache` | Delete all cached HTTP responses |
 | `roomba engine install <url>` | Download and install an engine from a URL |
 | `roomba engine list` | List installed engines |

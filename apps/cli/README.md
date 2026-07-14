@@ -63,7 +63,7 @@ and `Size` is normalized to a consistent form (e.g. `639 KB`) across engines.
 
 Region filtering happens on our side over the full result set.
 
-### `roomba download <url> [-o <path>]`
+### `roomba download <url> [-o <path>] [-c <alias>] [--no-refresh]`
 
 Download a game file from a URL produced by `roomba search`.
 
@@ -71,20 +71,31 @@ Download a game file from a URL produced by `roomba search`.
 roomba download "https://dl3.vimm.net/?mediaId=44190"
 roomba download "https://dl3.vimm.net/?mediaId=44190" -o ~/roms/
 roomba download "https://dl3.vimm.net/?mediaId=44190" -o ~/roms/re2-disc1.7z
+roomba download "https://dl3.vimm.net/?mediaId=44190" -c snes
 ```
 
 | Option | Description |
 |---|---|
-| `-o, --output <path>` | Output **file** (used as-is) or **directory** (server filename inside it). Defaults to your OS Downloads folder |
+| `-o, --output <path>` | Output **file** (used as-is) or **directory** (server filename inside it). Defaults to your OS Downloads folder; on Batocera, the system's ROM folder |
+| `-c, --console <alias>` | Force the console (see `roomba consoles`); overrides auto-detection |
+| `--no-refresh` | On Batocera, don't restart EmulationStation after download |
 
 Behavior:
 
-- The file streams to disk with a live progress indicator (handles multi-GB
-  files without buffering in memory).
+- The file streams to disk with a live progress indicator, including live
+  transfer speed (handles multi-GB files without buffering in memory).
 - The filename comes from the server's `Content-Disposition` (game name +
   correct extension) unless you give an explicit file path.
 - With no `-o`, files go to `~/Downloads` (created if needed).
 - Downloads are **not** cached.
+
+On Batocera, `download` detects the system and saves into
+`/userdata/roms/<system>/`, then restarts EmulationStation so the game appears
+and is playable. The system is resolved from the URL by the engine; pass
+`-c, --console <alias>` to force it (see `roomba consoles`), or `--no-refresh`
+to skip the EmulationStation restart. `-o` overrides placement everywhere.
+Files are saved as downloaded (`.7z`/`.zip`); systems that need `.chd`/`.pbp`
+will appear but not yet launch.
 
 ### `roomba clean-cache`
 

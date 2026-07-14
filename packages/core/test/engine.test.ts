@@ -7,11 +7,11 @@ import {
 } from "../src/index.js";
 
 describe("engine contract", () => {
-  it("ENGINE_API_VERSION is 1", () => {
-    expect(ENGINE_API_VERSION).toBe(1);
+  it("ENGINE_API_VERSION is 2", () => {
+    expect(ENGINE_API_VERSION).toBe(2);
   });
 
-  it("a conforming RoomEngine constructs a RoomSource from a context", () => {
+  it("a conforming RoomEngine constructs a RoomSource with consoleFor", () => {
     const source: RoomSource = {
       id: "sample",
       baseURL: new URL("https://example.com"),
@@ -19,6 +19,7 @@ describe("engine contract", () => {
       resolve: (alias) => new URL(`/${alias}`, "https://example.com"),
       search: async () => [],
       downloadRequest: () => null,
+      consoleFor: (url) => (url.searchParams.get("mediaId") ? "snes" : null),
     };
 
     const engine: RoomEngine = {
@@ -33,7 +34,8 @@ describe("engine contract", () => {
       fetcher: async () => ({ status: 200, ok: true, body: "" }),
     });
 
-    expect(created.id).toBe("sample");
-    expect(engine.apiVersion).toBe(1);
+    expect(created.consoleFor(new URL("https://example.com/?mediaId=1"))).toBe("snes");
+    expect(created.consoleFor(new URL("https://example.com/"))).toBeNull();
+    expect(engine.apiVersion).toBe(2);
   });
 });

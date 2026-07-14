@@ -1,11 +1,28 @@
+import type { RoomSource } from "@praser/roomba-core";
 import { describe, expect, it } from "vitest";
 import {
   formatBytes,
   parseContentDispositionFilename,
   provisionalName,
+  resolveDestination,
+  resolveDownload,
   resolveFinalName,
   resumePlan,
+  speedLabel,
 } from "../src/download.js";
+
+function fakeSource(over: Partial<RoomSource>): RoomSource {
+  return {
+    id: "fake",
+    baseURL: new URL("https://fake.test"),
+    loadConsoles: async () => [],
+    resolve: (a) => new URL(`/${a}`, "https://fake.test"),
+    search: async () => [],
+    downloadRequest: () => null,
+    consoleFor: () => null,
+    ...over,
+  };
+}
 
 describe("parseContentDispositionFilename", () => {
   it("reads a quoted filename", () => {
@@ -107,5 +124,65 @@ describe("formatBytes", () => {
     expect(formatBytes(1536)).toBe("1.5 KB");
     expect(formatBytes(1024 * 1024)).toBe("1.0 MB");
     expect(formatBytes(3.5 * 1024 * 1024 * 1024)).toBe("3.5 GB");
+  });
+});
+
+describe("speedLabel", () => {
+  it("formats bytes/elapsed as a per-second rate", () => {
+    expect(speedLabel(1024 * 1024, 1000)).toBe("1.0 MB/s");
+    expect(speedLabel(2 * 1024 * 1024, 500)).toBe("4.0 MB/s");
+  });
+
+  it("returns an empty string when no time has elapsed", () => {
+    expect(speedLabel(1024, 0)).toBe("");
+  });
+});
+
+describe("resolveDestination", () => {
+  it("uses -o output wherever it is given (even on Batocera)", () => {
+    expect(resolveDestination({ output: "/tmp/x.7z", onBatocera: true, alias: "snes" })).toEqual({
+      kind: "path",
+      output: "/tmp/x.7z",
+    });
+  });
+
+  it("falls back to the default path off Batocera", () => {
+    expect(resolveDestination({ onBatocera: false, alias: null })).toEqual({ kind: "path" });
+  });
+
+  it("targets the roms folder on Batocera when the alias is known", () => {
+    expect(resolveDestination({ onBatocera: true, alias: "snes" })).toEqual({
+      kind: "roms",
+      alias: "snes",
+    });
+  });
+
+  it("throws on Batocera when the console could not be determined", () => {
+    expect(() => resolveDestination({ onBatocera: true, alias: null })).toThrow(
+      /Couldn't determine the console/,
+    );
+  });
+
+  it("throws on Batocera when the alias is not in the catalog", () => {
+    expect(() => resolveDestination({ onBatocera: true, alias: "bogus" })).toThrow(
+      /Unknown console 'bogus'/,
+    );
+  });
+});
+
+describe("resolveDownload", () => {
+  it("returns the first source that recognizes the URL, with its request", async () => {
+    const url = new URL("https://fake.test/?mediaId=5");
+    const req = { url, headers: {} };
+    const a = fakeSource({ downloadRequest: () => null });
+    const b = fakeSource({ id: "b", downloadRequest: (u) => (u.href === url.href ? req : null) });
+    const picked = await resolveDownload([a, b], url);
+    expect(picked?.source.id).toBe("b");
+    expect(picked?.request).toBe(req);
+  });
+
+  it("returns null when no source recognizes the URL", async () => {
+    const picked = await resolveDownload([fakeSource({})], new URL("https://fake.test/x"));
+    expect(picked).toBeNull();
   });
 });

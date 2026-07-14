@@ -134,14 +134,25 @@ program
   .argument("<url>", "download URL from `roomba search`")
   .option(
     "-o, --output <path>",
-    "output file or directory (default: your Downloads folder)",
+    "output file or directory (default: your Downloads folder; on Batocera, the system's ROM folder)",
   )
+  .option(
+    "-c, --console <alias>",
+    "force the console (see `roomba consoles`); overrides auto-detection",
+  )
+  .option("--no-refresh", "on Batocera, don't restart EmulationStation after download")
   .description("Download a game file")
-  .action(async (url: string, options: { output?: string }) => {
-    const sources = await createSources({ cache: false });
-    if (sources.length === 0) return printNoEngines();
-    await downloadFile(sources, url, options.output);
-  });
+  .action(
+    async (url: string, options: { output?: string; console?: string; refresh: boolean }) => {
+      const sources = await createSources({ cache: false });
+      if (sources.length === 0) return printNoEngines();
+      await downloadFile(sources, url, {
+        output: options.output,
+        console: options.console,
+        noRefresh: !options.refresh,
+      });
+    },
+  );
 
 program
   .command("clean-cache")
