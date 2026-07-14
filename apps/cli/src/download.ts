@@ -4,6 +4,7 @@ import { homedir } from "node:os";
 import { basename, dirname, join, sep } from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
+import { CONSOLE_BY_ALIAS } from "@praser/roomba-core";
 import type { DownloadRequest, RoomSource } from "@praser/roomba-core";
 
 /**
@@ -140,6 +141,40 @@ function contentRangeTotal(header: string | null): number {
   return match ? Number(match[1]) : 0;
 }
 
+/** Where a download should be written. */
+export type Destination =
+  | { kind: "path"; output?: string } // default (~/Downloads) or -o path
+  | { kind: "roms"; alias: string }; // /userdata/roms/<alias>
+
+export interface DestinationInput {
+  /** -o value, if given. */
+  output?: string;
+  onBatocera: boolean;
+  /** Alias from --console or consoleFor, already resolved (null if unknown). */
+  alias: string | null;
+}
+
+/** Decide where a download goes. Throws with guidance when placement is impossible. */
+export function resolveDestination(input: DestinationInput): Destination {
+  if (input.output != null) return { kind: "path", output: input.output };
+  if (!input.onBatocera) return { kind: "path" };
+  if (!input.alias) {
+    throw new Error(
+      "Couldn't determine the console for this URL — pass --console <alias> (see `roomba consoles`).",
+    );
+  }
+  if (!CONSOLE_BY_ALIAS.has(input.alias)) {
+    throw new Error(`Unknown console '${input.alias}' — see \`roomba consoles\`.`);
+  }
+  return { kind: "roms", alias: input.alias };
+}
+
+/** A short "N MB/s" label from bytes transferred over an elapsed interval. */
+export function speedLabel(deltaBytes: number, deltaMs: number): string {
+  if (deltaMs <= 0) return "";
+  return `${formatBytes((deltaBytes / deltaMs) * 1000)}/s`;
+}
+
 /** Stable, response-independent name used for the `.part` file. */
 export function provisionalName(url: URL): string {
   const mediaId = url.searchParams.get("mediaId");
@@ -216,20 +251,23 @@ async function fileSize(path: string): Promise<number> {
   }
 }
 
-/** A pass-through stream that prints download progress to stderr. */
+/** A pass-through stream that prints download progress (and speed) to stderr. */
 function progressReporter(total: number, start = 0): Transform {
   let downloaded = start;
   let lastPrint = 0;
+  let lastBytes = start;
   return new Transform({
     transform(chunk: Buffer, _encoding, callback) {
       downloaded += chunk.length;
       const now = Date.now();
       if (now - lastPrint > 200 || (total && downloaded >= total)) {
+        const speed = speedLabel(downloaded - lastBytes, now - lastPrint);
         lastPrint = now;
+        lastBytes = downloaded;
         const status = total
           ? `${formatBytes(downloaded)} / ${formatBytes(total)} (${((downloaded / total) * 100).toFixed(1)}%)`
           : formatBytes(downloaded);
-        process.stderr.write(`\rDownloading… ${status}`);
+        process.stderr.write(`\rDownloading… ${status}${speed ? ` ${speed}` : ""}`);
       }
       callback(null, chunk);
     },

@@ -3,8 +3,10 @@ import {
   formatBytes,
   parseContentDispositionFilename,
   provisionalName,
+  resolveDestination,
   resolveFinalName,
   resumePlan,
+  speedLabel,
 } from "../src/download.js";
 
 describe("parseContentDispositionFilename", () => {
@@ -107,5 +109,48 @@ describe("formatBytes", () => {
     expect(formatBytes(1536)).toBe("1.5 KB");
     expect(formatBytes(1024 * 1024)).toBe("1.0 MB");
     expect(formatBytes(3.5 * 1024 * 1024 * 1024)).toBe("3.5 GB");
+  });
+});
+
+describe("speedLabel", () => {
+  it("formats bytes/elapsed as a per-second rate", () => {
+    expect(speedLabel(1024 * 1024, 1000)).toBe("1.0 MB/s");
+    expect(speedLabel(2 * 1024 * 1024, 500)).toBe("4.0 MB/s");
+  });
+
+  it("returns an empty string when no time has elapsed", () => {
+    expect(speedLabel(1024, 0)).toBe("");
+  });
+});
+
+describe("resolveDestination", () => {
+  it("uses -o output wherever it is given (even on Batocera)", () => {
+    expect(resolveDestination({ output: "/tmp/x.7z", onBatocera: true, alias: "snes" })).toEqual({
+      kind: "path",
+      output: "/tmp/x.7z",
+    });
+  });
+
+  it("falls back to the default path off Batocera", () => {
+    expect(resolveDestination({ onBatocera: false, alias: null })).toEqual({ kind: "path" });
+  });
+
+  it("targets the roms folder on Batocera when the alias is known", () => {
+    expect(resolveDestination({ onBatocera: true, alias: "snes" })).toEqual({
+      kind: "roms",
+      alias: "snes",
+    });
+  });
+
+  it("throws on Batocera when the console could not be determined", () => {
+    expect(() => resolveDestination({ onBatocera: true, alias: null })).toThrow(
+      /Couldn't determine the console/,
+    );
+  });
+
+  it("throws on Batocera when the alias is not in the catalog", () => {
+    expect(() => resolveDestination({ onBatocera: true, alias: "bogus" })).toThrow(
+      /Unknown console 'bogus'/,
+    );
   });
 });
