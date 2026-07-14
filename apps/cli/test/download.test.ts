@@ -1,29 +1,101 @@
 import { describe, expect, it } from "vitest";
-import { filenameFromContentDisposition, formatBytes } from "../src/download.js";
+import {
+  formatBytes,
+  parseContentDispositionFilename,
+  provisionalName,
+  resolveFinalName,
+  resumePlan,
+} from "../src/download.js";
 
-const url = new URL("https://dl3.vimm.net/?mediaId=44190");
-
-describe("filenameFromContentDisposition", () => {
+describe("parseContentDispositionFilename", () => {
   it("reads a quoted filename", () => {
     expect(
-      filenameFromContentDisposition('attachment; filename="Resident Evil 2 (Europe).7z"', url),
+      parseContentDispositionFilename('attachment; filename="Resident Evil 2 (Europe).7z"'),
     ).toBe("Resident Evil 2 (Europe).7z");
   });
 
   it("reads an RFC 5987 filename*", () => {
-    expect(
-      filenameFromContentDisposition("attachment; filename*=UTF-8''Pok%C3%A9mon.gba", url),
-    ).toBe("Pokémon.gba");
+    expect(parseContentDispositionFilename("attachment; filename*=UTF-8''Pok%C3%A9mon.gba")).toBe(
+      "Pokémon.gba",
+    );
   });
 
-  it("strips any directory components from the header value", () => {
-    expect(filenameFromContentDisposition('attachment; filename="../../etc/passwd"', url)).toBe(
+  it("strips directory components", () => {
+    expect(parseContentDispositionFilename('attachment; filename="../../etc/passwd"')).toBe(
       "passwd",
     );
   });
 
-  it("falls back to the mediaId when no header is present", () => {
-    expect(filenameFromContentDisposition(null, url)).toBe("44190.7z");
+  it("returns null when there is no header", () => {
+    expect(parseContentDispositionFilename(null)).toBeNull();
+  });
+});
+
+describe("provisionalName", () => {
+  it("uses the Vimm mediaId", () => {
+    expect(provisionalName(new URL("https://dl3.vimm.net/?mediaId=44190"))).toBe("44190.7z");
+  });
+
+  it("falls back to the URL basename", () => {
+    expect(provisionalName(new URL("https://www.emuparadise.me/PSX_ISOs/Game/37713"))).toBe(
+      "37713",
+    );
+  });
+});
+
+describe("resolveFinalName", () => {
+  it("prefers the Content-Disposition filename", () => {
+    const name = resolveFinalName(
+      'attachment; filename="Nice Name.7z"',
+      new URL("https://cdn.example.com/x/whatever.7z"),
+      "37713",
+    );
+    expect(name).toBe("Nice Name.7z");
+  });
+
+  it("falls back to the decoded final-URL basename when it has an extension", () => {
+    const name = resolveFinalName(
+      null,
+      new URL("https://dl1.mprd.se/abc/Tomb%20Raider%20II%20%28USA%29%20%28v1.3%29.7z"),
+      "37713",
+    );
+    expect(name).toBe("Tomb Raider II (USA) (v1.3).7z");
+  });
+
+  it("falls back to the provisional name when nothing better exists", () => {
+    expect(resolveFinalName(null, new URL("https://x.com/download"), "37713")).toBe("37713");
+  });
+});
+
+describe("resumePlan", () => {
+  it("appends on 206, taking the total from Content-Range", () => {
+    expect(resumePlan(100, 206, { contentLength: 340, contentRange: "bytes 100-439/440" })).toEqual(
+      { action: "append", start: 100, total: 440 },
+    );
+  });
+
+  it("restarts when the server ignores Range and sends 200", () => {
+    expect(resumePlan(100, 200, { contentLength: 440, contentRange: null })).toEqual({
+      action: "restart",
+      start: 0,
+      total: 440,
+    });
+  });
+
+  it("treats 416 as already complete", () => {
+    expect(resumePlan(440, 416, { contentLength: 0, contentRange: null })).toEqual({
+      action: "complete",
+      start: 440,
+      total: 440,
+    });
+  });
+
+  it("does a fresh download when there is no partial", () => {
+    expect(resumePlan(0, 200, { contentLength: 440, contentRange: null })).toEqual({
+      action: "restart",
+      start: 0,
+      total: 440,
+    });
   });
 });
 
