@@ -2,8 +2,8 @@
 
 The `roomba` command-line app. It loads whatever engines you've installed
 (see [Engines](#engines) below) and adds the cross-cutting behavior —
-case-insensitive alias matching, region/language filtering, an on-disk HTTP
-cache, and table rendering.
+case-insensitive alias matching, region filtering, an on-disk HTTP cache, and
+table rendering.
 
 > Part of the [roomba](../../README.md) monorepo.
 
@@ -47,20 +47,21 @@ query may be quoted or passed as trailing words.
 
 ```
 $ roomba search snes "final fantasy" --region usa
-Game                       | Region | Version | Languages | Rating | Size   | Download URL
-Final Fantasy II (USA).sfc | USA    | 1.0     | -         | 8.5    | 639 KB | https://dl3.vimm.net/?mediaId=34421
+Title                      | Region | Version | Size   | Source | URL
+Final Fantasy II (USA).sfc | USA    | 1.0     | 639 KB | vimm   | https://dl3.vimm.net/?mediaId=34421
 ...
 ```
+
+Columns are **Title, Region, Version, Size, Source, URL**. `Source` is the id of
+the engine that produced the row (results from all installed engines are merged),
+and `Size` is normalized to a consistent form (e.g. `639 KB`) across engines.
 
 | Option | Description |
 |---|---|
 | `-r, --region <region>` | Filter by region, case-insensitive substring (e.g. `usa`, `europe`) |
-| `-l, --lang <code>` | Filter by language code, case-insensitive (e.g. `en`, `es`). `--language` also works |
 | `--no-cache` | Bypass the HTTP cache and fetch fresh |
 
-Filtering happens on our side over the full result set. Note that some sources
-don't tag a language for every release (e.g. many single-language cartridge
-games), in which case `--lang` won't match them.
+Region filtering happens on our side over the full result set.
 
 ### `roomba download <url> [-o <path>]`
 

@@ -3,22 +3,25 @@ import type { GameFile, RoomSource } from "@praser/roomba-core";
 export interface SearchFilters {
   /** Case-insensitive region substring, e.g. "usa". */
   region?: string;
-  /** Case-insensitive language code, e.g. "en". */
-  language?: string;
+}
+
+/** A search hit annotated with the id of the engine that produced it. */
+export interface SearchResult extends GameFile {
+  source: string;
 }
 
 /**
- * Search every source for a console's games and merge the results. The console
- * alias is matched case-insensitively against each source's console list, and
- * region/language filters are applied on our side over the full result set (so
- * new sources only need to implement listing + search).
+ * Search every source for a console's games and merge the results, tagging each
+ * row with its source. The console alias is matched case-insensitively against
+ * each source's console list, and the region filter is applied on our side over
+ * the full result set (so new sources only need to implement listing + search).
  */
 export async function searchGames(
   sources: RoomSource[],
   alias: string,
   query: string,
   filters: SearchFilters = {},
-): Promise<GameFile[]> {
+): Promise<SearchResult[]> {
   const wanted = alias.toLowerCase();
   let recognized = false;
 
@@ -28,7 +31,8 @@ export async function searchGames(
       const match = consoles.find((console) => console.alias.toLowerCase() === wanted);
       if (!match) return [];
       recognized = true;
-      return source.search(match.alias, query);
+      const games = await source.search(match.alias, query);
+      return games.map<SearchResult>((game) => ({ ...game, source: source.id }));
     }),
   );
 
@@ -44,10 +48,6 @@ export async function searchGames(
 function matchesFilters(game: GameFile, filters: SearchFilters): boolean {
   if (filters.region && !game.region.toLowerCase().includes(filters.region.toLowerCase())) {
     return false;
-  }
-  if (filters.language) {
-    const codes = game.languages.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
-    if (!codes.includes(filters.language.toLowerCase())) return false;
   }
   return true;
 }
