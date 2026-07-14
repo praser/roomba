@@ -13,7 +13,7 @@ import {
 } from "../src/engines.js";
 
 /** An ESM engine bundle as a source string, parameterized by apiVersion. */
-function fixtureBundle(apiVersion = 1): string {
+function fixtureBundle(apiVersion = 2): string {
   return `export default {
   id: "fixture",
   name: "Fixture Source",
@@ -22,10 +22,11 @@ function fixtureBundle(apiVersion = 1): string {
   create: (ctx) => ({
     id: "fixture",
     baseURL: new URL("https://fixture.test"),
-    loadConsoles: async () => [{ name: "Fixture Console", alias: "FIX" }],
+    loadConsoles: async () => [{ name: "Super Nintendo", alias: "snes", category: "home-console" }],
     resolve: (alias) => new URL("/" + alias, "https://fixture.test"),
     search: async () => [],
     downloadRequest: () => null,
+    consoleFor: () => null,
   }),
 };
 `;
@@ -119,7 +120,7 @@ describe("loadEngines", () => {
     const sources = await loadEngines(dir, ctx);
     expect(sources).toHaveLength(1);
     expect(await sources[0]!.loadConsoles()).toEqual([
-      { name: "Fixture Console", alias: "FIX" },
+      { name: "Super Nintendo", alias: "snes", category: "home-console" },
     ]);
   });
 
