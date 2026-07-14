@@ -6,27 +6,58 @@ import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { CONSOLE_BY_ALIAS } from "@praser/roomba-core";
 import type { DownloadRequest, RoomSource } from "@praser/roomba-core";
+import { detectBatocera, refreshLibrary, romsDir } from "./batocera.js";
+
+export interface DownloadOptions {
+  /** -o output file or directory. */
+  output?: string;
+  /** Force a console alias (overrides consoleFor). */
+  console?: string;
+  /** Skip the EmulationStation refresh after placing a ROM. */
+  noRefresh?: boolean;
+}
 
 /**
  * Download a file, resuming a prior partial (`<dest>.part`) via an HTTP Range
- * request when one exists. Ctrl-C pauses (the partial is kept); re-running the
- * same command resumes. On completion the partial is renamed to its final name.
+ * request when one exists. On Batocera, places the ROM in /userdata/roms/<alias>
+ * (alias from --console or the engine's consoleFor) and refreshes the library.
+ * Ctrl-C pauses (the partial is kept); re-running resumes.
  */
 export async function downloadFile(
   sources: RoomSource[],
   rawUrl: string,
-  output?: string,
+  options: DownloadOptions = {},
 ): Promise<void> {
   const url = new URL(rawUrl);
 
-  const request = await pickDownloadRequest(sources, url);
-  if (!request) {
+  const resolved = await resolveDownload(sources, url);
+  if (!resolved) {
     throw new Error(`No source knows how to download ${url.href}`);
+  }
+  const { source, request } = resolved;
+
+  const onBatocera = detectBatocera();
+  // Resolve the console: explicit flag wins; else ask the matching engine.
+  // Only needed when we might place into a roms folder (Batocera, no -o).
+  let alias: string | null = options.console ?? null;
+  if (alias == null && onBatocera && options.output == null) {
+    alias = await source.consoleFor(url);
+  }
+
+  const destination = resolveDestination({ output: options.output, onBatocera, alias });
+
+  // Announce the detected console once, before streaming.
+  if (destination.kind === "roms") {
+    const known = CONSOLE_BY_ALIAS.get(destination.alias);
+    console.log(`Console: ${destination.alias}${known ? ` (${known.name})` : ""}`);
   }
 
   // The .part path is derived from the URL/-o (not the response), so it's stable
   // across runs and a re-run finds it to resume.
-  const { dir, fixedFile } = await targetDir(output);
+  const { dir, fixedFile } =
+    destination.kind === "roms"
+      ? await ensureDir(romsDir(destination.alias))
+      : await targetDir(destination.output);
   const provisional = provisionalName(url);
   const partialPath = fixedFile ? `${fixedFile}.part` : join(dir, `${provisional}.part`);
   const existing = await fileSize(partialPath);
@@ -61,6 +92,7 @@ export async function downloadFile(
     if (plan.action === "complete") {
       await rename(partialPath, finalDest);
       console.log(`Saved to ${finalDest}`);
+      await maybeRefresh(destination, options.noRefresh);
       return;
     }
 
@@ -83,6 +115,7 @@ export async function downloadFile(
     await rename(partialPath, finalDest);
     process.stderr.write("\n");
     console.log(`Saved to ${finalDest}`);
+    await maybeRefresh(destination, options.noRefresh);
   } catch (error) {
     if (controller.signal.aborted) {
       process.stderr.write("\n");
@@ -96,17 +129,31 @@ export async function downloadFile(
   }
 }
 
-async function pickDownloadRequest(
+/**
+ * Ask each source whether it recognizes the URL; return the first that does,
+ * paired with its resolved request. Awaited: an engine may navigate pages.
+ * Non-matching engines reject cheaply (host check) before any network.
+ */
+export async function resolveDownload(
   sources: RoomSource[],
   url: URL,
-): Promise<DownloadRequest | null> {
+): Promise<{ source: RoomSource; request: DownloadRequest } | null> {
   for (const source of sources) {
-    // Awaited: an engine may navigate intermediate pages to resolve the link.
-    // Non-matching engines reject cheaply (host check) before any network.
     const request = await source.downloadRequest(url);
-    if (request) return request;
+    if (request) return { source, request };
   }
   return null;
+}
+
+/** Refresh EmulationStation after a ROM placement, unless suppressed. */
+async function maybeRefresh(destination: Destination, noRefresh?: boolean): Promise<void> {
+  if (destination.kind === "roms" && !noRefresh) await refreshLibrary();
+}
+
+/** mkdir -p a known directory and return it in targetDir's shape. */
+async function ensureDir(dir: string): Promise<{ dir: string; fixedFile?: string }> {
+  await mkdir(dir, { recursive: true });
+  return { dir };
 }
 
 /** What to do given the existing partial size and the server's response. */

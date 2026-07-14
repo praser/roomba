@@ -1,13 +1,28 @@
+import type { RoomSource } from "@praser/roomba-core";
 import { describe, expect, it } from "vitest";
 import {
   formatBytes,
   parseContentDispositionFilename,
   provisionalName,
   resolveDestination,
+  resolveDownload,
   resolveFinalName,
   resumePlan,
   speedLabel,
 } from "../src/download.js";
+
+function fakeSource(over: Partial<RoomSource>): RoomSource {
+  return {
+    id: "fake",
+    baseURL: new URL("https://fake.test"),
+    loadConsoles: async () => [],
+    resolve: (a) => new URL(`/${a}`, "https://fake.test"),
+    search: async () => [],
+    downloadRequest: () => null,
+    consoleFor: () => null,
+    ...over,
+  };
+}
 
 describe("parseContentDispositionFilename", () => {
   it("reads a quoted filename", () => {
@@ -152,5 +167,22 @@ describe("resolveDestination", () => {
     expect(() => resolveDestination({ onBatocera: true, alias: "bogus" })).toThrow(
       /Unknown console 'bogus'/,
     );
+  });
+});
+
+describe("resolveDownload", () => {
+  it("returns the first source that recognizes the URL, with its request", async () => {
+    const url = new URL("https://fake.test/?mediaId=5");
+    const req = { url, headers: {} };
+    const a = fakeSource({ downloadRequest: () => null });
+    const b = fakeSource({ id: "b", downloadRequest: (u) => (u.href === url.href ? req : null) });
+    const picked = await resolveDownload([a, b], url);
+    expect(picked?.source.id).toBe("b");
+    expect(picked?.request).toBe(req);
+  });
+
+  it("returns null when no source recognizes the URL", async () => {
+    const picked = await resolveDownload([fakeSource({})], new URL("https://fake.test/x"));
+    expect(picked).toBeNull();
   });
 });
