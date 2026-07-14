@@ -1,10 +1,20 @@
 export const VERSION = "0.0.0";
 
+/** Hardware category from the Batocera systems page. */
+export type ConsoleCategory =
+  | "arcade"
+  | "home-console"
+  | "portable"
+  | "home-computer"
+  | "port"; // Port, Flatpak & Miscellaneous
+
 export interface Console {
-  /** Human-readable console name, e.g. "PlayStation 2". */
+  /** Canonical display name, e.g. "Super Nintendo Entertainment System". */
   name: string;
-  /** Stable, unique identifier used to resolve a console to a source URL, e.g. "PS2". */
+  /** Batocera system / ROM-folder name, e.g. "snes". THE placement target. */
   alias: string;
+  /** Hardware category from the Batocera systems page. */
+  category: ConsoleCategory;
 }
 
 /**
