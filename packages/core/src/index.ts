@@ -95,3 +95,5 @@ export interface RoomEngine {
   /** Construct the RoomSource. */
   create(ctx: EngineContext): RoomSource;
 }
+
+export { CONSOLES, CONSOLE_BY_ALIAS } from "./consoles.js";
