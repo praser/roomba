@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline/promises";
-import { Command, Option } from "commander";
+import { Command } from "commander";
 import { cleanCache } from "./cache.js";
 import { downloadFile } from "./download.js";
 import {
@@ -97,22 +97,17 @@ program
   .argument("<query...>", "game name to search for")
   .description("Search a console's games across all sources, one row per file")
   .option("-r, --region <region>", "filter by region (case-insensitive)")
-  .option("-l, --lang <language>", "filter by language code (case-insensitive)")
-  .addOption(new Option("--language <language>", "alias for --lang").hideHelp())
   .option("--no-cache", "bypass the HTTP cache and fetch fresh")
   .action(
     async (
       alias: string,
       queryParts: string[],
-      options: { region?: string; lang?: string; language?: string; cache: boolean },
+      options: { region?: string; cache: boolean },
     ) => {
       const query = queryParts.join(" ");
       const sources = await createSources({ cache: options.cache });
       if (sources.length === 0) return printNoEngines();
-      const rows = await searchGames(sources, alias, query, {
-        region: options.region,
-        language: options.lang ?? options.language,
-      });
+      const rows = await searchGames(sources, alias, query, { region: options.region });
 
       if (rows.length === 0) {
         console.log(`No games found for "${query}" on ${alias}.`);
@@ -120,14 +115,13 @@ program
       }
 
       const table = renderTable(
-        ["Game", "Region", "Version", "Languages", "Rating", "Size", "Download URL"],
+        ["Title", "Region", "Version", "Size", "Source", "URL"],
         rows.map((row) => [
           row.name,
           row.region,
           row.version,
-          row.languages,
-          row.rating,
           row.size,
+          row.source,
           row.downloadUrl,
         ]),
       );

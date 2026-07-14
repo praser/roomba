@@ -18,12 +18,15 @@ export interface GameFile {
   region: string;
   /** File version, e.g. "1.0". */
   version: string;
-  /** Languages, e.g. "En,Fr,Es". */
-  languages: string;
-  /** Community rating, e.g. "9.6". */
-  rating: string;
-  /** Compressed file size, e.g. "330 MB". */
+  /**
+   * Compressed file size. Engines should pass their raw size string through
+   * `normalizeSize` so every source renders consistently (e.g. "330 MB").
+   */
   size: string;
+  /** Optional languages, e.g. "En,Fr,Es". Not displayed by roomba. */
+  languages?: string;
+  /** Optional community rating, e.g. "9.6". Not displayed by roomba. */
+  rating?: string;
   /** Direct download URL for this specific file. */
   downloadUrl: string;
 }
@@ -97,3 +100,4 @@ export interface RoomEngine {
 }
 
 export { CONSOLES, CONSOLE_BY_ALIAS } from "./consoles.js";
+export { normalizeSize } from "./size.js";
