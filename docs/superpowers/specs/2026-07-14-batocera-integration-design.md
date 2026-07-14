@@ -25,7 +25,8 @@ Off Batocera, `download` behaves exactly as it does today (saves to
 **In (v1):** Batocera detection; a console catalog whose vocabulary *is*
 Batocera's systems; a per-engine URL→console resolver; a `--console` override;
 placement into the right ROM folder; a best-effort library refresh so the game
-appears without a reboot.
+appears without a reboot; and two download-feedback touches — showing the
+detected console and the live transfer speed (bandwidth).
 
 **Deferred (own specs):**
 - **v2 — rich scraping.** Batocera has no working headless scraper
@@ -182,6 +183,22 @@ Destination resolution (in the command action, before streaming):
 After a successful save on Batocera, unless `--no-refresh`, call
 `refreshLibrary()`.
 
+### Download feedback (both additions apply here)
+
+- **Detected console line.** Once a console is resolved (via `--console` or
+  `consoleFor`), print it before streaming, e.g.
+  `Console: snes (Super Nintendo Entertainment System)` — looked up from
+  `CONSOLE_BY_ALIAS`. Only shown when a console was resolved (i.e. on Batocera,
+  or whenever `--console` is passed); silent otherwise so desktop output is
+  unchanged apart from the speed below.
+- **Bandwidth in the progress line.** Extend `progressReporter` (in
+  `download.ts`) to show current transfer speed alongside the existing
+  bytes/total/percent, e.g.
+  `Downloading… 120 MB / 330 MB (36.4%) 8.7 MB/s`. Speed is a short rolling
+  average (bytes since the last print ÷ elapsed) rather than the cumulative
+  average, so it reflects live throughput. Applies to **every** download,
+  Batocera or not. Reuses the existing `formatBytes` helper (append `/s`).
+
 ### Errors
 
 - On Batocera, `consoleFor` returns `null` and no `--console`:
@@ -211,6 +228,11 @@ After a successful save on Batocera, unless `--no-refresh`, call
   - resolution order `--console → consoleFor → error`; unknown alias errors;
     `null` console without `--console` errors.
   - `--no-refresh` skips the restart; default triggers it once, after save.
+  - detected-console line prints alias + name when a console is resolved, and
+    is absent when none is (plain desktop download).
+  - `progressReporter` includes a `MB/s` speed figure; speed is computed from
+    bytes-since-last-print over elapsed time (unit-test the calculation with
+    fixed byte/time inputs).
   - existing download/resume tests still pass against the refactored signature.
 
 ## Rollout
