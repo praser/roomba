@@ -1,6 +1,6 @@
 {
   "name": "@praser/roomba",
-  "version": "2.0.2",
+  "version": "3.0.0",
   "description": "roomba command-line interface",
   "license": "MIT",
   "author": "Rubens Praser Junior",
