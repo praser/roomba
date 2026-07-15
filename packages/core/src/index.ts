@@ -123,4 +123,5 @@ export interface RoomEngine {
 }
 
 export { CONSOLES, CONSOLE_BY_ALIAS } from "./consoles.js";
+export { SYSTEM_EXTENSIONS, acceptedExtensions } from "./extensions.js";
 export { normalizeSize } from "./size.js";
