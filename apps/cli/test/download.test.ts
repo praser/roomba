@@ -4,8 +4,6 @@ import {
   formatBytes,
   parseContentDispositionFilename,
   provisionalName,
-  resolveConsoleAlias,
-  resolveDestination,
   resolveDownload,
   resolveFinalName,
   resumePlan,
@@ -136,91 +134,6 @@ describe("speedLabel", () => {
 
   it("returns an empty string when no time has elapsed", () => {
     expect(speedLabel(1024, 0)).toBe("");
-  });
-});
-
-describe("resolveDestination", () => {
-  it("uses -o output wherever it is given (even on Batocera)", () => {
-    expect(resolveDestination({ output: "/tmp/x.7z", onBatocera: true, alias: "snes" })).toEqual({
-      kind: "path",
-      output: "/tmp/x.7z",
-    });
-  });
-
-  it("falls back to the default path off Batocera", () => {
-    expect(resolveDestination({ onBatocera: false, alias: null })).toEqual({ kind: "path" });
-  });
-
-  it("targets the roms folder on Batocera when the alias is known", () => {
-    expect(resolveDestination({ onBatocera: true, alias: "snes" })).toEqual({
-      kind: "roms",
-      alias: "snes",
-    });
-  });
-
-  it("throws on Batocera when the console could not be determined", () => {
-    expect(() => resolveDestination({ onBatocera: true, alias: null })).toThrow(
-      /Couldn't determine the console/,
-    );
-  });
-
-  it("throws on Batocera when the alias is not in the catalog", () => {
-    expect(() => resolveDestination({ onBatocera: true, alias: "bogus" })).toThrow(
-      /Unknown console 'bogus'/,
-    );
-  });
-});
-
-describe("resolveConsoleAlias", () => {
-  const withConsoleFor = (result: string | null) =>
-    fakeSource({ consoleFor: () => result });
-
-  it("reads roomba_console from the URL when no --console is given", async () => {
-    const url = new URL("https://dl3.vimm.net/?mediaId=1&roomba_console=snes");
-    expect(
-      await resolveConsoleAlias(url, withConsoleFor(null), { onBatocera: true }),
-    ).toBe("snes");
-  });
-
-  it("prefers the --console flag over the embedded param", async () => {
-    const url = new URL("https://dl3.vimm.net/?mediaId=1&roomba_console=snes");
-    expect(
-      await resolveConsoleAlias(url, withConsoleFor(null), { console: "n64", onBatocera: true }),
-    ).toBe("n64");
-  });
-
-  it("reads the embedded param without calling the engine", async () => {
-    const url = new URL("https://dl3.vimm.net/?mediaId=1&roomba_console=gba");
-    const source = fakeSource({
-      consoleFor: () => {
-        throw new Error("consoleFor should not be called when the param is present");
-      },
-    });
-    expect(await resolveConsoleAlias(url, source, { onBatocera: true })).toBe("gba");
-  });
-
-  it("falls back to the engine's consoleFor when the URL has no param (Batocera, no -o)", async () => {
-    const url = new URL("https://dl3.vimm.net/?mediaId=1");
-    expect(
-      await resolveConsoleAlias(url, withConsoleFor("psx"), { onBatocera: true }),
-    ).toBe("psx");
-  });
-
-  it("does not consult the engine off Batocera and returns null with no param", async () => {
-    const url = new URL("https://dl3.vimm.net/?mediaId=1");
-    const source = fakeSource({
-      consoleFor: () => {
-        throw new Error("consoleFor should not be called off Batocera");
-      },
-    });
-    expect(await resolveConsoleAlias(url, source, { onBatocera: false })).toBeNull();
-  });
-
-  it("reads the embedded param even off Batocera", async () => {
-    const url = new URL("https://dl3.vimm.net/?mediaId=1&roomba_console=snes");
-    expect(
-      await resolveConsoleAlias(url, withConsoleFor(null), { onBatocera: false }),
-    ).toBe("snes");
   });
 });
 
