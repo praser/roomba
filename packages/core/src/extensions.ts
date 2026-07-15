@@ -273,3 +273,35 @@ export const SYSTEM_EXTENSIONS: Readonly<Record<string, readonly string[]>> = {
 export function acceptedExtensions(alias: string): readonly string[] {
   return SYSTEM_EXTENSIONS[alias] ?? [];
 }
+
+/** Archive formats roomba can extract (lowercase, no dot). */
+export const EXTRACTABLE = ["zip", "7z", "rar"] as const;
+
+/** What to do with a file just placed in an alias's ROM folder. */
+export type PostDownloadPlan =
+  | { kind: "keep" } // extension accepted, or no data for the alias → leave it
+  | { kind: "extract"; archive: string } // not accepted but extractable → unpack
+  | { kind: "manual"; ext: string }; // not accepted and not extractable → warn
+
+/** Lowercased extension after the last dot, or "" if there is none. */
+function fileExt(filename: string): string {
+  const dot = filename.lastIndexOf(".");
+  return dot < 0 ? "" : filename.slice(dot + 1).toLowerCase();
+}
+
+/**
+ * Decide what to do with a file just placed in `alias`'s ROM folder. Pure — no
+ * I/O. Callers apply it only for Batocera ROM placement. An alias with no
+ * catalog entry, or a file whose extension the system already accepts, yields
+ * `keep`, so missing data never risks corrupting a romset.
+ */
+export function planPostDownload(alias: string, filename: string): PostDownloadPlan {
+  const accepted = acceptedExtensions(alias);
+  const ext = fileExt(filename);
+  if (accepted.length === 0) return { kind: "keep" };
+  if (ext === "" || accepted.includes(ext)) return { kind: "keep" };
+  if ((EXTRACTABLE as readonly string[]).includes(ext)) {
+    return { kind: "extract", archive: filename };
+  }
+  return { kind: "manual", ext };
+}
