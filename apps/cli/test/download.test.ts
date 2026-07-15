@@ -18,7 +18,6 @@ function fakeSource(over: Partial<RoomSource>): RoomSource {
     resolve: (a) => new URL(`/${a}`, "https://fake.test"),
     search: async () => [],
     downloadRequest: () => null,
-    consoleFor: () => null,
     ...over,
   };
 }
