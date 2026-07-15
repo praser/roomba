@@ -4,9 +4,10 @@ import { homedir } from "node:os";
 import { basename, dirname, join, sep } from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { CONSOLE_BY_ALIAS } from "@praser/roomba-core";
-import type { DownloadRequest, RoomSource } from "@praser/roomba-core";
+import { CONSOLE_BY_ALIAS, planPostDownload } from "@praser/roomba-core";
+import type { DownloadRequest, PostDownloadPlan, RoomSource } from "@praser/roomba-core";
 import { detectBatocera, refreshLibrary, romsDir } from "./batocera.js";
+import { extractArchive } from "./extract.js";
 
 export interface DownloadOptions {
   /** -o output file or directory. */
@@ -91,7 +92,7 @@ export async function downloadFile(
     if (plan.action === "complete") {
       await rename(partialPath, finalDest);
       console.log(`Saved to ${finalDest}`);
-      await maybeRefresh(destination, options.noRefresh);
+      await afterPlacement(destination, finalDest, options);
       return;
     }
 
@@ -114,7 +115,7 @@ export async function downloadFile(
     await rename(partialPath, finalDest);
     process.stderr.write("\n");
     console.log(`Saved to ${finalDest}`);
-    await maybeRefresh(destination, options.noRefresh);
+    await afterPlacement(destination, finalDest, options);
   } catch (error) {
     if (controller.signal.aborted) {
       process.stderr.write("\n");
@@ -147,6 +148,38 @@ export async function resolveDownload(
 /** Refresh EmulationStation after a ROM placement, unless suppressed. */
 async function maybeRefresh(destination: Destination, noRefresh?: boolean): Promise<void> {
   if (destination.kind === "roms" && !noRefresh) await refreshLibrary();
+}
+
+/**
+ * The post-download plan for a placement: `keep` for anything not going into a
+ * ROM folder, otherwise the catalog's decision for the alias + final filename.
+ * Pure — the actual extraction happens in `afterPlacement`.
+ */
+export function resolvePostDownload(
+  destination: Destination,
+  finalName: string,
+): PostDownloadPlan {
+  if (destination.kind !== "roms") return { kind: "keep" };
+  return planPostDownload(destination.alias, finalName);
+}
+
+/** Post-placement work for a ROM: extract when needed, then refresh the library. */
+async function afterPlacement(
+  destination: Destination,
+  finalDest: string,
+  options: DownloadOptions,
+): Promise<void> {
+  const plan = resolvePostDownload(destination, basename(finalDest));
+  if (plan.kind === "extract") {
+    const result = await extractArchive(finalDest);
+    if (result.ok) console.log(`Extracted to ${result.dir}/`);
+  } else if (plan.kind === "manual" && destination.kind === "roms") {
+    process.stderr.write(
+      `roomba: ${destination.alias} doesn't accept .${plan.ext}; ` +
+        `unpack it manually in ${romsDir(destination.alias)}\n`,
+    );
+  }
+  await maybeRefresh(destination, options.noRefresh);
 }
 
 /** mkdir -p a known directory and return it in targetDir's shape. */
