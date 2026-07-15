@@ -8,7 +8,6 @@ import {
   resolveDestination,
   resolveDownload,
   resolveFinalName,
-  resolvePostDownload,
   resumePlan,
   speedLabel,
 } from "../src/download.js";
@@ -239,24 +238,5 @@ describe("resolveDownload", () => {
   it("returns null when no source recognizes the URL", async () => {
     const picked = await resolveDownload([fakeSource({})], new URL("https://fake.test/x"));
     expect(picked).toBeNull();
-  });
-});
-
-describe("resolvePostDownload", () => {
-  it("keeps files for a non-roms destination regardless of extension", () => {
-    expect(resolvePostDownload({ kind: "path" }, "Some Game.zip")).toEqual({ kind: "keep" });
-  });
-
-  it("extracts a non-accepted archive placed in a roms folder", () => {
-    expect(resolvePostDownload({ kind: "roms", alias: "psx" }, "Some Game.zip")).toEqual({
-      kind: "extract",
-      archive: "Some Game.zip",
-    });
-  });
-
-  it("keeps an accepted archive placed in a roms folder", () => {
-    expect(resolvePostDownload({ kind: "roms", alias: "snes" }, "Game.zip")).toEqual({
-      kind: "keep",
-    });
   });
 });

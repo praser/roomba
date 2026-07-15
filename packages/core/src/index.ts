@@ -123,11 +123,4 @@ export interface RoomEngine {
 }
 
 export { CONSOLES, CONSOLE_BY_ALIAS } from "./consoles.js";
-export {
-  SYSTEM_EXTENSIONS,
-  acceptedExtensions,
-  EXTRACTABLE,
-  planPostDownload,
-} from "./extensions.js";
-export type { PostDownloadPlan } from "./extensions.js";
 export { normalizeSize } from "./size.js";
