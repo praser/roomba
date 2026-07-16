@@ -46,7 +46,7 @@ Or invoke the built entry directly: `node apps/cli/dist/index.js <command>`.
 |---|---|
 | `roomba consoles` | List every console across all sources |
 | `roomba search <alias> <query>` | Search a console's games, one row per file |
-| `roomba download <url> [-o <path>]` | Download a game file to your Downloads folder (or `-o`); runs `roomba.post-download.sh` from the destination folder if present |
+| `roomba download <url> [-o <path>]` | Download a game file to your Downloads folder (or `-o`); runs `roomba.post-download.sh` from the destination folder if present ([hook guide](docs/post-download-hooks.md)) |
 | `roomba clean-cache` | Delete all cached HTTP responses |
 | `roomba engine install <url>` | Download and install an engine from a URL |
 | `roomba engine list` | List installed engines |
