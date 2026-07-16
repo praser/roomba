@@ -84,12 +84,6 @@ export interface RoomSource {
    * returned URL, following redirects.
    */
   downloadRequest: (url: URL) => Awaitable<DownloadRequest | null>;
-  /**
-   * If this source recognizes the URL, return the catalog alias of the console
-   * it belongs to (e.g. "snes"); otherwise null. May be async: an engine can
-   * navigate intermediate pages (via its injected Fetcher) to determine it.
-   */
-  consoleFor: (url: URL) => Awaitable<string | null>;
 }
 
 /**
@@ -97,7 +91,7 @@ export interface RoomSource {
  * RoomEngine change incompatibly; roomba refuses to load an engine whose
  * apiVersion differs from this.
  */
-export const ENGINE_API_VERSION = 2;
+export const ENGINE_API_VERSION = 3;
 
 /** What roomba injects into an engine when constructing its RoomSource. */
 export interface EngineContext {
@@ -123,11 +117,4 @@ export interface RoomEngine {
 }
 
 export { CONSOLES, CONSOLE_BY_ALIAS } from "./consoles.js";
-export {
-  SYSTEM_EXTENSIONS,
-  acceptedExtensions,
-  EXTRACTABLE,
-  planPostDownload,
-} from "./extensions.js";
-export type { PostDownloadPlan } from "./extensions.js";
 export { normalizeSize } from "./size.js";

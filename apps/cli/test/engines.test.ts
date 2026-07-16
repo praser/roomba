@@ -13,7 +13,7 @@ import {
 } from "../src/engines.js";
 
 /** An ESM engine bundle as a source string, parameterized by apiVersion. */
-function fixtureBundle(apiVersion = 2): string {
+function fixtureBundle(apiVersion = 3): string {
   return `export default {
   id: "fixture",
   name: "Fixture Source",
@@ -26,7 +26,6 @@ function fixtureBundle(apiVersion = 2): string {
     resolve: (alias) => new URL("/" + alias, "https://fixture.test"),
     search: async () => [],
     downloadRequest: () => null,
-    consoleFor: () => null,
   }),
 };
 `;

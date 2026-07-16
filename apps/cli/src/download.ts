@@ -4,25 +4,20 @@ import { homedir } from "node:os";
 import { basename, dirname, join, sep } from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { CONSOLE_BY_ALIAS, planPostDownload } from "@praser/roomba-core";
-import type { DownloadRequest, PostDownloadPlan, RoomSource } from "@praser/roomba-core";
-import { detectBatocera, refreshLibrary, romsDir } from "./batocera.js";
-import { extractArchive } from "./extract.js";
+import type { DownloadRequest, RoomSource } from "@praser/roomba-core";
+import { runPostDownloadHook } from "./hooks.js";
 
 export interface DownloadOptions {
-  /** -o output file or directory. */
+  /** -o output file or directory (default: your Downloads folder). */
   output?: string;
-  /** Force a console alias (overrides consoleFor). */
-  console?: string;
-  /** Skip the EmulationStation refresh after placing a ROM. */
-  noRefresh?: boolean;
 }
 
 /**
  * Download a file, resuming a prior partial (`<dest>.part`) via an HTTP Range
- * request when one exists. On Batocera, places the ROM in /userdata/roms/<alias>
- * (alias from --console or the engine's consoleFor) and refreshes the library.
- * Ctrl-C pauses (the partial is kept); re-running resumes.
+ * request when one exists. Saves to your Downloads folder by default, or to
+ * `-o`. After the file is saved, runs `roomba.post-download.sh` from the
+ * destination folder if present. Ctrl-C pauses (the partial is kept); re-running
+ * resumes.
  */
 export async function downloadFile(
   sources: RoomSource[],
@@ -35,29 +30,11 @@ export async function downloadFile(
   if (!resolved) {
     throw new Error(`No source knows how to download ${url.href}`);
   }
-  const { source, request } = resolved;
-
-  const onBatocera = detectBatocera();
-  const alias = await resolveConsoleAlias(url, source, {
-    console: options.console,
-    onBatocera,
-    output: options.output,
-  });
-
-  const destination = resolveDestination({ output: options.output, onBatocera, alias });
-
-  // Announce the detected console once, before streaming.
-  if (destination.kind === "roms") {
-    const known = CONSOLE_BY_ALIAS.get(destination.alias);
-    console.log(`Console: ${destination.alias}${known ? ` (${known.name})` : ""}`);
-  }
+  const { request } = resolved;
 
   // The .part path is derived from the URL/-o (not the response), so it's stable
   // across runs and a re-run finds it to resume.
-  const { dir, fixedFile } =
-    destination.kind === "roms"
-      ? await ensureDir(romsDir(destination.alias))
-      : await targetDir(destination.output);
+  const { dir, fixedFile } = await targetDir(options.output);
   const provisional = provisionalName(url);
   const partialPath = fixedFile ? `${fixedFile}.part` : join(dir, `${provisional}.part`);
   const existing = await fileSize(partialPath);
@@ -92,7 +69,7 @@ export async function downloadFile(
     if (plan.action === "complete") {
       await rename(partialPath, finalDest);
       console.log(`Saved to ${finalDest}`);
-      await afterPlacement(destination, finalDest, options);
+      await runPostDownloadHook(dir, finalDest, url.href);
       return;
     }
 
@@ -115,7 +92,7 @@ export async function downloadFile(
     await rename(partialPath, finalDest);
     process.stderr.write("\n");
     console.log(`Saved to ${finalDest}`);
-    await afterPlacement(destination, finalDest, options);
+    await runPostDownloadHook(dir, finalDest, url.href);
   } catch (error) {
     if (controller.signal.aborted) {
       process.stderr.write("\n");
@@ -143,49 +120,6 @@ export async function resolveDownload(
     if (request) return { source, request };
   }
   return null;
-}
-
-/** Refresh EmulationStation after a ROM placement, unless suppressed. */
-async function maybeRefresh(destination: Destination, noRefresh?: boolean): Promise<void> {
-  if (destination.kind === "roms" && !noRefresh) await refreshLibrary();
-}
-
-/**
- * The post-download plan for a placement: `keep` for anything not going into a
- * ROM folder, otherwise the catalog's decision for the alias + final filename.
- * Pure — the actual extraction happens in `afterPlacement`.
- */
-export function resolvePostDownload(
-  destination: Destination,
-  finalName: string,
-): PostDownloadPlan {
-  if (destination.kind !== "roms") return { kind: "keep" };
-  return planPostDownload(destination.alias, finalName);
-}
-
-/** Post-placement work for a ROM: extract when needed, then refresh the library. */
-async function afterPlacement(
-  destination: Destination,
-  finalDest: string,
-  options: DownloadOptions,
-): Promise<void> {
-  const plan = resolvePostDownload(destination, basename(finalDest));
-  if (plan.kind === "extract") {
-    const result = await extractArchive(finalDest);
-    if (result.ok) console.log(`Extracted to ${result.dir}/`);
-  } else if (plan.kind === "manual" && destination.kind === "roms") {
-    process.stderr.write(
-      `roomba: ${destination.alias} doesn't accept .${plan.ext}; ` +
-        `unpack it manually in ${romsDir(destination.alias)}\n`,
-    );
-  }
-  await maybeRefresh(destination, options.noRefresh);
-}
-
-/** mkdir -p a known directory and return it in targetDir's shape. */
-async function ensureDir(dir: string): Promise<{ dir: string; fixedFile?: string }> {
-  await mkdir(dir, { recursive: true });
-  return { dir };
 }
 
 /** What to do given the existing partial size and the server's response. */
@@ -218,61 +152,6 @@ export function resumePlan(
 function contentRangeTotal(header: string | null): number {
   const match = header ? /\/(\d+)\s*$/.exec(header) : null;
   return match ? Number(match[1]) : 0;
-}
-
-/**
- * Query param roomba's engines embed in each search download URL to carry the
- * resolved Batocera console alias. roomba owns this convention, so it is read
- * here centrally rather than relying on each engine's `consoleFor`.
- */
-export const ROOMBA_CONSOLE_PARAM = "roomba_console";
-
-/**
- * Resolve the console alias for a download, most-specific first:
- *   1. the explicit `--console` flag,
- *   2. the `roomba_console` param roomba embedded in the URL at search time,
- *   3. the engine's `consoleFor` (only when it could matter: on Batocera with no
- *      `-o`, since that's the sole path that places into a ROM folder).
- * Returns null when none apply.
- */
-export async function resolveConsoleAlias(
-  url: URL,
-  source: Pick<RoomSource, "consoleFor">,
-  options: { console?: string; onBatocera: boolean; output?: string },
-): Promise<string | null> {
-  if (options.console != null) return options.console;
-  const embedded = url.searchParams.get(ROOMBA_CONSOLE_PARAM);
-  if (embedded != null) return embedded;
-  if (options.onBatocera && options.output == null) return source.consoleFor(url);
-  return null;
-}
-
-/** Where a download should be written. */
-export type Destination =
-  | { kind: "path"; output?: string } // default (~/Downloads) or -o path
-  | { kind: "roms"; alias: string }; // /userdata/roms/<alias>
-
-export interface DestinationInput {
-  /** -o value, if given. */
-  output?: string;
-  onBatocera: boolean;
-  /** Alias from --console or consoleFor, already resolved (null if unknown). */
-  alias: string | null;
-}
-
-/** Decide where a download goes. Throws with guidance when placement is impossible. */
-export function resolveDestination(input: DestinationInput): Destination {
-  if (input.output != null) return { kind: "path", output: input.output };
-  if (!input.onBatocera) return { kind: "path" };
-  if (!input.alias) {
-    throw new Error(
-      "Couldn't determine the console for this URL — pass --console <alias> (see `roomba consoles`).",
-    );
-  }
-  if (!CONSOLE_BY_ALIAS.has(input.alias)) {
-    throw new Error(`Unknown console '${input.alias}' — see \`roomba consoles\`.`);
-  }
-  return { kind: "roms", alias: input.alias };
 }
 
 /** A short "N MB/s" label from bytes transferred over an elapsed interval. */

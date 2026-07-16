@@ -63,7 +63,7 @@ and `Size` is normalized to a consistent form (e.g. `639 KB`) across engines.
 
 Region filtering happens on our side over the full result set.
 
-### `roomba download <url> [-o <path>] [-c <alias>] [--no-refresh]`
+### `roomba download <url> [-o <path>]`
 
 Download a game file from a URL produced by `roomba search`.
 
@@ -71,14 +71,11 @@ Download a game file from a URL produced by `roomba search`.
 roomba download "https://dl3.vimm.net/?mediaId=44190"
 roomba download "https://dl3.vimm.net/?mediaId=44190" -o ~/roms/
 roomba download "https://dl3.vimm.net/?mediaId=44190" -o ~/roms/re2-disc1.7z
-roomba download "https://dl3.vimm.net/?mediaId=44190" -c snes
 ```
 
 | Option | Description |
 |---|---|
-| `-o, --output <path>` | Output **file** (used as-is) or **directory** (server filename inside it). Defaults to your OS Downloads folder; on Batocera, the system's ROM folder |
-| `-c, --console <alias>` | Force the console (see `roomba consoles`); overrides auto-detection |
-| `--no-refresh` | On Batocera, don't restart EmulationStation after download |
+| `-o, --output <path>` | Output **file** (used as-is) or **directory** (server filename inside it). Defaults to your OS Downloads folder |
 
 Behavior:
 
@@ -89,13 +86,15 @@ Behavior:
 - With no `-o`, files go to `~/Downloads` (created if needed).
 - Downloads are **not** cached.
 
-On Batocera, `download` detects the system and saves into
-`/userdata/roms/<system>/`, then restarts EmulationStation so the game appears
-and is playable. The system is resolved from the URL by the engine; pass
-`-c, --console <alias>` to force it (see `roomba consoles`), or `--no-refresh`
-to skip the EmulationStation restart. `-o` overrides placement everywhere.
-Files are saved as downloaded (`.7z`/`.zip`); systems that need `.chd`/`.pbp`
-will appear but not yet launch.
+#### Post-download hook
+
+After a file finishes downloading, if a `roomba.post-download.sh` script exists
+in the destination folder, roomba runs it with `sh`. The script's working
+directory is the destination folder; the downloaded file's name is passed as
+`$1`, and `ROOMBA_FILE` (absolute path), `ROOMBA_FILENAME`, and `ROOMBA_URL` are
+set in the environment. A non-zero exit is warned about but does not fail the
+download. Use it for anything system-specific — extracting archives, creating
+launcher files, converting formats, refreshing your frontend.
 
 ### `roomba clean-cache`
 
